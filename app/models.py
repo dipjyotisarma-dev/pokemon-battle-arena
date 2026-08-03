@@ -1,6 +1,8 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Float, UniqueConstraint
+from sqlalchemy.orm import relationship
+from .database import Base
 
-class User():
+class User(Base):
 
     __tablename__ = 'users'
 
@@ -15,9 +17,23 @@ class User():
     last_average_points = Column(Float, default=0.0, nullable=False)
     last_battle_summary = Column(JSON, nullable=True)
 
+    # One trainer has one leaderboard entry
+    leaderboard = relationship(
+        "Leaderboard",
+        back_populates="trainer",
+        uselist=False
+    )
+
+    # One trainer has six team slots
+    team = relationship(
+        "TrainerTeam",
+        back_populates="trainer",
+        cascade="all, delete-orphan"
+    )
 
 
-class Pokemon:
+
+class Pokemon(Base):
 
     __tablename__ = "pokemon"
 
@@ -33,9 +49,20 @@ class Pokemon:
     speed = Column(Integer, nullable=False)
     image = Column(String, nullable=False)
 
+    team_slots = relationship(
+        "TrainerTeam",
+        back_populates="pokemon"
+    )
+
+    available_moves = relationship(
+        "PokemonMove",
+        back_populates="pokemon",
+        cascade="all, delete-orphan"
+    )
 
 
-class Move:
+
+class Move(Base):
 
     __tablename__ = "moves"
 
@@ -45,20 +72,49 @@ class Move:
     category = Column(String, nullable=False)
     base_power = Column(Integer, nullable=False)
 
+    pokemon_moves = relationship(
+        "PokemonMove",
+        back_populates="move",
+        cascade="all, delete-orphan"
+    )
 
 
-class PokemonMove:
+
+class PokemonMove(Base):
 
     __tablename__ = "pokemon_moves"
 
     pokemon_id = Column(Integer, ForeignKey("pokemon.id"), primary_key=True)
     move_id = Column(Integer, ForeignKey("moves.id"), primary_key=True)
 
+    pokemon = relationship(
+        "Pokemon",
+        back_populates="available_moves"
+    )
+
+    move = relationship(
+        "Move",
+        back_populates="pokemon_moves"
+    )
 
 
-class TrainerTeam:
+
+class TrainerTeam(Base):
 
     __tablename__ = "trainer_team"
+
+    __table_args__ = (
+        UniqueConstraint(
+            "trainer_id",
+            "slot",
+            name="uq_trainer_slot"
+        ),
+        UniqueConstraint(
+            "trainer_id",
+            "pokemon_id",
+            name="uq_trainer_pokemon"
+        )
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     trainer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
@@ -69,10 +125,40 @@ class TrainerTeam:
     move3_id = Column(Integer, ForeignKey("moves.id"), nullable=False)
     move4_id = Column(Integer, ForeignKey("moves.id"), nullable=False)
 
+    trainer = relationship(
+        "User",
+        back_populates="team"
+    )
+
+    pokemon = relationship(
+        "Pokemon",
+        back_populates="team_slots"
+    )
+
+    move1 = relationship(
+        "Move",
+        foreign_keys=[move1_id]
+    )
+
+    move2 = relationship(
+        "Move",
+        foreign_keys=[move2_id]
+    )
+
+    move3 = relationship(
+        "Move",
+        foreign_keys=[move3_id]
+    )
+
+    move4 = relationship(
+        "Move",
+        foreign_keys=[move4_id]
+    )
 
 
 
-class Leaderboard:
+
+class Leaderboard(Base):
 
     __tablename__ = "leaderboard"
 
@@ -80,3 +166,8 @@ class Leaderboard:
     total_matches = Column(Integer, default=0, nullable=False)
     wins = Column(Integer, default=0, nullable=False)
     points = Column(Float, default=0.0, nullable=False)
+
+    trainer = relationship(
+        "User",
+        back_populates="leaderboard"
+    )
