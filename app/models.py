@@ -39,6 +39,7 @@ class Pokemon(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, index=True, nullable=False)
+    display_name = Column(String, nullable=False)
     type1 = Column(String, nullable=False)
     type2 = Column(String, nullable=True)
     hp = Column(Integer, nullable=False)
