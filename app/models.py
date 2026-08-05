@@ -48,6 +48,7 @@ class Pokemon(Base):
     special_attack = Column(Integer, nullable=False)
     special_defense = Column(Integer, nullable=False)
     speed = Column(Integer, nullable=False)
+    bst = Column(Integer, nullable=False)
     image = Column(String, nullable=False)
 
     team_slots = relationship(
