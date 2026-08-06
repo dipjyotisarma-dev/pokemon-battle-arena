@@ -70,6 +70,7 @@ class Move(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     move_name = Column(String, unique=True, index=True, nullable=False)
+    display_name = Column(String, nullable=False)
     move_type = Column(String, nullable=False)
     category = Column(String, nullable=False)
     base_power = Column(Integer, nullable=False)
