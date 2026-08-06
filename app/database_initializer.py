@@ -15,6 +15,7 @@ PROCESSED_DATA_DIR = DATA_DIR / "processed"
 
 POKEMON_CSV = PROCESSED_DATA_DIR / "pokemon.csv"
 MOVES_CSV = PROCESSED_DATA_DIR / "moves.csv"
+POKEMON_MOVES_CSV = PROCESSED_DATA_DIR / "pokemon_moves.csv"
 
 
 def create_tables():
@@ -115,7 +116,37 @@ def seed_pokemon_moves():
     """
     Imports pokemon_moves.csv into the PokemonMove table.
     """
-    pass
+    db = SessionLocal()
+
+    try:
+        if db.query(PokemonMove).first():
+            print("PokemonMove table already seeded.")
+            return
+
+        pokemon_moves_df = pd.read_csv(POKEMON_MOVES_CSV)
+        pokemon_move_objects = []
+
+        for _, row in pokemon_moves_df.iterrows():
+
+            pokemon_move = PokemonMove(
+                pokemon_id=int(row["pokemon_id"]),
+                move_id=int(row["move_id"])
+            )
+            pokemon_move_objects.append(pokemon_move)
+
+        db.add_all(pokemon_move_objects)
+        db.commit()
+
+        print(f"Seeded {len(pokemon_move_objects)} pokemon-move mappings.")
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+
+        db.close()
+
 
 
 def create_default_admin():
@@ -129,10 +160,19 @@ def initialize_database():
     """
     Initializes the entire database.
     """
-    print("Initializing database...")
+    print("Creating database tables...")
     create_tables()
+
+    print("Seeding Pokémon...")
     seed_pokemon()
+
+    print("Seeding moves...")
     seed_moves()
+
+    print("Seeding Pokémon moves...")
     seed_pokemon_moves()
+
+    print("Creating default admin...")
     create_default_admin()
+
     print("Database initialization completed.")
