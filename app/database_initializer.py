@@ -1,13 +1,20 @@
 from pathlib import Path
 import pandas as pd
 from app.database import Base, engine, SessionLocal
-from app.models import Pokemon
-
+from app.models import (
+    Pokemon,
+    Move,
+    PokemonMove,
+    User,
+)
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
 
-POKEMON_CSV = DATA_DIR / "pokemon.csv"
+PROCESSED_DATA_DIR = DATA_DIR / "processed"
+
+POKEMON_CSV = PROCESSED_DATA_DIR / "pokemon.csv"
+MOVES_CSV = PROCESSED_DATA_DIR / "moves.csv"
 
 
 def create_tables():
@@ -26,11 +33,11 @@ def seed_pokemon():
     try:
         # return if data already exist in database
         if db.query(Pokemon).first():
+            print("Pokemon table already seeded.")
             return
         
         pokemon_df = pd.read_csv(POKEMON_CSV)
-
-        pokemon_objects = []
+        pokemon_records = []
 
         for _, row in pokemon_df.iterrows():
 
@@ -49,16 +56,14 @@ def seed_pokemon():
                 bst=row["bst"],
                 image=row["image"]
             )
+            pokemon_records.append(pokemon)
 
-            pokemon_objects.append(pokemon)
-
-        db.add_all(pokemon_objects)
-
+        db.add_all(pokemon_records)
         db.commit()
 
-        print(f"Seeded {len(pokemon_objects)} Pokémon.")
+        print(f"Seeded {len(pokemon_records)} Pokémon.")
 
-    except:
+    except Exception:
         db.rollback()
         raise
 
@@ -71,7 +76,39 @@ def seed_moves():
     """
     Imports moves.csv into the Move table.
     """
-    pass
+    db = SessionLocal()
+
+    try:
+        if db.query(Move).first():
+            print("Moves table already seeded.")
+            return
+
+        moves_df = pd.read_csv(MOVES_CSV)
+        move_objects = []
+
+        for _, row in moves_df.iterrows():
+
+            move = Move(
+                id=row["id"],
+                move_name=row["move_name"],
+                display_name=row["display_name"],
+                move_type=row["move_type"],
+                category=row["category"],
+                base_power=row["base_power"]
+            )
+            move_objects.append(move)
+
+        db.add_all(move_objects)
+        db.commit()
+
+        print(f"Seeded {len(move_objects)} moves.")
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
 
 
 def seed_pokemon_moves():
@@ -92,8 +129,10 @@ def initialize_database():
     """
     Initializes the entire database.
     """
+    print("Initializing database...")
     create_tables()
     seed_pokemon()
     seed_moves()
     seed_pokemon_moves()
     create_default_admin()
+    print("Database initialization completed.")
