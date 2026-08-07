@@ -1,12 +1,16 @@
-from pathlib import Path
+from datetime import datetime, timezone
 import pandas as pd
-from app.database import Base, engine, SessionLocal
+from app.config import settings
+from app.database import Base, SessionLocal, engine
 from app.models import (
     Pokemon,
     Move,
     PokemonMove,
-    User,
+    User
 )
+from app.security import hash_password
+from pathlib import Path
+
 
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -151,9 +155,46 @@ def seed_pokemon_moves():
 
 def create_default_admin():
     """
-    Creates the default admin account if it does not exist.
+    Creates the default administrator account if it
+    does not already exist.
     """
-    pass
+    db = SessionLocal()
+    try:
+        admin = (
+            db.query(User)
+            .filter(
+                User.username == settings.DEFAULT_ADMIN_USERNAME
+            )
+            .first()
+        )
+        if admin:
+            print("Default admin already exists.")
+            return
+
+        admin = User(
+            username=settings.DEFAULT_ADMIN_USERNAME,
+            email=settings.DEFAULT_ADMIN_EMAIL,
+            password_hash=hash_password(
+                settings.DEFAULT_ADMIN_PASSWORD
+            ),
+            role="admin",
+            created_at=datetime.now(timezone.utc),
+            last_matches=0,
+            last_wins=0,
+            last_average_points=0.0,
+            last_battle_summary=None
+
+        )
+        db.add(admin)
+        db.commit()
+        print("Default admin created.")
+
+    except Exception:
+        db.rollback()
+        raise
+
+    finally:
+        db.close()
 
 
 def initialize_database():
