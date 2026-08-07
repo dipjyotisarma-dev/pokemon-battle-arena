@@ -1,17 +1,24 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from pathlib import Path
+from app.config import settings
 
-BASE_DIR = Path(__file__).resolve().parent
-DATABASE_URL = f"sqlite:///{BASE_DIR / 'pokemon_battle_arena.db'}"
+# SQLAlchemy Engine
+if settings.DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        settings.DATABASE_URL,
+        connect_args={"check_same_thread": False}
+    )
+else:
+    engine = create_engine(settings.DATABASE_URL)
 
-engine = create_engine(DATABASE_URL, connect_args = {'check_same_thread': False})
 
+# Session Factory
 SessionLocal = sessionmaker(autocommit = False, autoflush = False, bind=engine)
 
+# Base class 
 Base = declarative_base()
 
-
+# Database dependency
 def get_db():
     """
     Creates a new database session for each request
