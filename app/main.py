@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
-from app.database import Base, engine
-import app.models
-from app.database_initializer import initialize_database
+from app.db.database import Base, engine
+import app.db.models
+from app.db.database_initializer import initialize_database
 
 
 @asynccontextmanager

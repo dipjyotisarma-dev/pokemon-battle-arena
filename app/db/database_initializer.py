@@ -1,18 +1,18 @@
 from datetime import datetime, timezone
 import pandas as pd
-from app.config import settings
-from app.database import Base, SessionLocal, engine
-from app.models import (
+from app.core.config import settings
+from app.db.database import Base, SessionLocal, engine
+from app.db.models import (
     Pokemon,
     Move,
     PokemonMove,
     User
 )
-from app.security import hash_password
+from app.core.security import hash_password
 from pathlib import Path
 
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 DATA_DIR = BASE_DIR / "data"
 
 PROCESSED_DATA_DIR = DATA_DIR / "processed"
