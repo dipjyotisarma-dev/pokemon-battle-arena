@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.core.security import (
     create_access_token,
@@ -44,6 +45,11 @@ def register_user(db: Session, user_data: UserCreate) -> UserResponse:
         email=user_data.email,
         password_hash=hashed_password,
         role="trainer",
+        created_at=datetime.now(timezone.utc),
+        last_matches=0,
+        last_wins=0,
+        last_average_points=0.0,
+        last_battle_summary=None,
     )
 
     # Save user

@@ -3,6 +3,7 @@ from contextlib import asynccontextmanager
 from app.db.database import Base, engine
 import app.db.models
 from app.db.database_initializer import initialize_database
+from app.routers.auth import router as auth_router
 
 
 @asynccontextmanager
@@ -21,6 +22,7 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+app.include_router(auth_router)
 
 @app.get("/")
 async def home():
