@@ -10,7 +10,10 @@ from app.services.auth_service import (
     register_user,
 )
 from app.db.models import User
-from app.dependencies.auth import get_current_user
+from app.dependencies.auth import (
+    get_current_user,
+    require_admin
+)
 
 
 router = APIRouter(
