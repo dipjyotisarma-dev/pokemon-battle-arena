@@ -9,14 +9,6 @@ class UserCreate(BaseModel):
     password: str
 
 
-class UserLogin(BaseModel):
-    '''
-    Schema for user login
-    '''
-    username: str
-    password: str
-
-
 class Token(BaseModel):
     '''
     Schema for JWT access token response

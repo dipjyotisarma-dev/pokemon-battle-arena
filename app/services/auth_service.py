@@ -6,7 +6,7 @@ from app.core.security import (
     verify_password,
 )
 from app.db.models import User
-from app.schemas.auth import Token, UserCreate, UserLogin
+from app.schemas.auth import Token, UserCreate
 from app.schemas.user import UserResponse
 
 
@@ -66,7 +66,7 @@ def register_user(db: Session, user_data: UserCreate) -> UserResponse:
     return UserResponse.model_validate(user)
 
 
-def authenticate_user(db: Session, login_data: UserLogin) -> User | None:
+def authenticate_user(db: Session, username: str, password: str) -> User | None:
     """
     Authenticate a user using username and password.
 
@@ -78,7 +78,7 @@ def authenticate_user(db: Session, login_data: UserLogin) -> User | None:
     # Find user by username
     user = (
         db.query(User)
-        .filter(User.username == login_data.username)
+        .filter(User.username == username)
         .first()
     )
     if not user:
@@ -86,7 +86,7 @@ def authenticate_user(db: Session, login_data: UserLogin) -> User | None:
 
     # Verify password
     password_valid = verify_password(
-        login_data.password,
+        password,
         user.password_hash
     )
     if not password_valid:
