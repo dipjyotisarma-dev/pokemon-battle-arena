@@ -24,7 +24,7 @@ class User(Base):
         uselist=False
     )
 
-    # One trainer has six team slots
+    # One trainer has multiple team slots, with exactly six enforced by application logic.
     team = relationship(
         "TrainerTeam",
         back_populates="trainer",
