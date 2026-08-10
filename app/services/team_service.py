@@ -10,6 +10,12 @@ from app.schemas.team import (
     TeamSlotResponse,
 )
 
+SPECIAL_CATEGORIES = {
+    "legendary",
+    "mythical",
+    "ultra_beast",
+}
+
 
 def validate_team(
     db: Session,
@@ -18,23 +24,41 @@ def validate_team(
     """
     Validate the complete team before it is saved.
 
-    Validation rules:
-        1. Exactly six slots.
+    Team rules:
+        1. Exactly six Pokémon.
         2. Slots must be numbered 1 through 6.
         3. No duplicate Pokémon.
-        4. Exactly four different moves per Pokémon.
-        5. Every Pokémon must exist.
-        6. Every selected move must exist.
-        7. Every selected move must be learnable by that Pokémon.
+        4. At most one special Pokémon.
+        5. Exactly four moves per Pokémon.
+        6. No duplicate moves for a Pokémon.
+        7. Every Pokémon must exist.
+        8. Every selected move must be learnable by that Pokémon.
 
-    Returns:
-        A list of validated team data.
+    Special Pokémon:
+        - legendary
+        - mythical
+        - ultra_beast
+
+    A team may contain:
+        - 6 basic Pokémon
+        - 5 basic + 1 legendary
+        - 5 basic + 1 mythical
+        - 5 basic + 1 ultra_beast
     """
 
     slots = team_data.slots
 
+    # Validate number of slots
+    if len(slots) != 6:
+        raise ValueError(
+            "A team must contain exactly 6 Pokémon."
+        )
+
     # Validate slot numbers
-    slot_numbers = [slot.slot for slot in slots]
+    slot_numbers = [
+        slot.slot
+        for slot in slots
+    ]
 
     if set(slot_numbers) != {1, 2, 3, 4, 5, 6}:
         raise ValueError(
@@ -53,21 +77,21 @@ def validate_team(
         )
 
     validated_slots = []
+    selected_pokemon = []
 
     # Validate each slot
     for slot in slots:
-
         # Retrieve Pokémon
         pokemon = (
             db.query(Pokemon)
             .filter(Pokemon.id == slot.pokemon_id)
             .first()
         )
-
         if pokemon is None:
             raise ValueError(
                 f"Pokémon with ID {slot.pokemon_id} does not exist."
             )
+        selected_pokemon.append(pokemon)
 
         # Validate move count
         if len(slot.move_ids) != 4:
@@ -81,7 +105,8 @@ def validate_team(
                 f"{pokemon.display_name} cannot have duplicate moves."
             )
 
-        # Validate moves
+        # Validate that each move is learnable
+        # by the selected Pokémon
         for move_id in slot.move_ids:
             move_exists = (
                 db.query(PokemonMove)
@@ -91,7 +116,6 @@ def validate_team(
                 )
                 .first()
             )
-
             if move_exists is None:
                 raise ValueError(
                     f"Move {move_id} cannot be learned by "
@@ -99,6 +123,25 @@ def validate_team(
                 )
 
         validated_slots.append(slot)
+
+    # Validate special Pokémon limit
+    special_pokemon = [
+        pokemon
+        for pokemon in selected_pokemon
+        if pokemon.pokemon_category in SPECIAL_CATEGORIES
+    ]
+
+    if len(special_pokemon) > 1:
+        special_names = ", ".join(
+            pokemon.display_name
+            for pokemon in special_pokemon
+        )
+
+        raise ValueError(
+            "A team can contain at most one "
+            "Legendary, Mythical, or Ultra Beast Pokémon. "
+            f"Selected special Pokémons: {special_names}."
+        )
 
     return validated_slots
 
@@ -111,14 +154,16 @@ def create_team(
     """
     Create a trainer's finalized team.
 
-    The team is validated completely before anything
-    is written to the database.
+    The complete team is validated before any
+    database records are created.
     """
 
     # Check whether trainer already has a team
     existing_team = (
         db.query(TrainerTeam)
-        .filter(TrainerTeam.trainer_id == trainer_id)
+        .filter(
+            TrainerTeam.trainer_id == trainer_id
+        )
         .first()
     )
 
@@ -134,7 +179,7 @@ def create_team(
         team_data=team_data,
     )
 
-    # Create database rows
+    # Create database objects
     team_objects = []
 
     for slot in validated_slots:
@@ -147,6 +192,7 @@ def create_team(
             move3_id=slot.move_ids[2],
             move4_id=slot.move_ids[3],
         )
+
         team_objects.append(team_object)
 
     # Save team
@@ -190,13 +236,14 @@ def update_team(
     team_data: TeamCreate,
 ) -> TeamResponse:
     """
-    Replace the trainer's existing team with a new
-    finalized team.
+    Replace the trainer's existing team with a
+    newly finalized team.
 
-    The complete new team is validated before the
-    existing team is removed.
+    The new team is fully validated before the
+    existing team is deleted.
     """
-    # Validate new team first
+
+    # Validate the new team first
     validated_slots = validate_team(
         db=db,
         team_data=team_data,
@@ -234,6 +281,7 @@ def update_team(
             move3_id=slot.move_ids[2],
             move4_id=slot.move_ids[3],
         )
+
         new_team_objects.append(team_object)
         db.add(team_object)
 
@@ -254,7 +302,7 @@ def build_team_response(
 ) -> TeamResponse:
     """
     Convert TrainerTeam ORM objects into
-    the API response schema.
+    the TeamResponse schema.
     """
 
     slots = []
