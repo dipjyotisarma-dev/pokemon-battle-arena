@@ -50,6 +50,7 @@ class Pokemon(Base):
     speed = Column(Integer, nullable=False)
     bst = Column(Integer, nullable=False)
     image = Column(String, nullable=False)
+    pokemon_category = Column(String, nullable=False, default="basic")
 
     team_slots = relationship(
         "TrainerTeam",

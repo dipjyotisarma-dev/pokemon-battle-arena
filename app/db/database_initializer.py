@@ -59,7 +59,8 @@ def seed_pokemon():
                 special_defense=row["special_defense"],
                 speed=row["speed"],
                 bst=row["bst"],
-                image=row["image"]
+                image=row["image"],
+                pokemon_category=row["pokemon_category"]
             )
             pokemon_records.append(pokemon)
 
