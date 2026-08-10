@@ -31,6 +31,7 @@ class PokemonResponse(BaseModel):
     speed: int
     bst: int
     image: str
+    pokemon_category: str
 
     model_config = ConfigDict(
         from_attributes=True
