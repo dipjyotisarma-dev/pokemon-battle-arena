@@ -140,7 +140,7 @@ def validate_team(
         raise ValueError(
             "A team can contain at most one "
             "Legendary, Mythical, or Ultra Beast Pokémon. "
-            f"Selected special Pokémons: {special_names}."
+            f"Selected special Pokémon: {special_names}."
         )
 
     return validated_slots
@@ -264,9 +264,11 @@ def update_team(
             "Use the create operation instead."
         )
 
-    # Remove old team
+    # Delete existing team
     for team_object in existing_team:
         db.delete(team_object)
+
+    db.flush()
 
     # Create new team
     new_team_objects = []
@@ -293,7 +295,7 @@ def update_team(
         db.rollback()
         raise
 
-    # Return response
+    # Return updated team
     return build_team_response(new_team_objects)
 
 

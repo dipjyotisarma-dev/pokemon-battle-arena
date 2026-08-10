@@ -92,3 +92,19 @@ def require_admin(
         )
 
     return current_user
+
+
+# Trainer Authorization
+def require_trainer(
+    current_user: User = Depends(get_current_user)
+) -> User:
+    """
+    Allow access only to trainers.
+    """
+    if current_user.role != "trainer":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Trainer privileges required.",
+        )
+
+    return current_user
