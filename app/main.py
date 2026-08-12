@@ -5,6 +5,7 @@ from app.db.database_initializer import initialize_database
 from app.routers.auth import router as auth_router
 from app.routers.pokemon import router as pokemon_router
 from app.routers.team import router as team_router
+from app.routers.trainer import router as trainer_router
 
 
 @asynccontextmanager
@@ -26,6 +27,7 @@ app = FastAPI(
 app.include_router(auth_router)
 app.include_router(pokemon_router)
 app.include_router(team_router)
+app.include_router(trainer_router)
 
 @app.get("/")
 async def home():
