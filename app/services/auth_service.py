@@ -5,16 +5,15 @@ from app.core.security import (
     hash_password,
     verify_password,
 )
-from app.db.models import User
+from app.db.models import User, Leaderboard
 from app.schemas.auth import Token, UserCreate
 from app.schemas.user import UserResponse
 
 
 def register_user(db: Session, user_data: UserCreate) -> UserResponse:
     """
-    Register a new trainer.
+    Register a new trainer and create their initial leaderboard entry.
     """
-
     # Check username uniqueness
     existing_username = (
         db.query(User)
@@ -32,7 +31,6 @@ def register_user(db: Session, user_data: UserCreate) -> UserResponse:
     )
     if existing_email:
         raise ValueError("Email already registered.")
-
 
     # Hash password
     hashed_password = hash_password(
@@ -52,9 +50,22 @@ def register_user(db: Session, user_data: UserCreate) -> UserResponse:
         last_battle_summary=None,
     )
 
-    # Save user
     try:
+        # Save user first so the generated ID is available
         db.add(user)
+        db.flush()
+
+        # Create initial leaderboard entry
+        leaderboard = Leaderboard(
+            trainer_id=user.id,
+            total_matches=0,
+            wins=0,
+            points=0.0,
+        )
+
+        db.add(leaderboard)
+
+        # Commit user + leaderboard together
         db.commit()
         db.refresh(user)
 

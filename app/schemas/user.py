@@ -18,3 +18,18 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(
         from_attributes=True
     )
+
+
+class TrainerDashboardResponse(BaseModel):
+    """
+    Statistics displayed on the trainer dashboard.
+    """
+    username: str
+    total_matches: int
+    wins: int
+    points: float
+    rank: int
+
+    model_config = ConfigDict(
+        from_attributes=True
+    )
