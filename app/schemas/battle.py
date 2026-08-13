@@ -37,3 +37,29 @@ class BattleStartResponse(BaseModel):
     completed_points: float
     trainer_team: list[BattlePokemonResponse]
     opponent_team: list[BattlePokemonResponse]
+
+
+class BattlePokemonSelectionRequest(BaseModel):
+    trainer_slot: int
+
+
+class BattleMatchIntroResponse(BaseModel):
+    battle_id: str
+    status: str
+    current_match: int
+    trainer_pokemon: BattlePokemonResponse
+    opponent_pokemon: BattlePokemonResponse
+    first_attacker: str
+
+
+class BattleContinueResponse(BaseModel):
+    battle_id: str
+    status: str
+    current_match: int
+    trainer_pokemon: BattlePokemonResponse
+    opponent_pokemon: BattlePokemonResponse
+    trainer_current_hp: int
+    opponent_current_hp: int
+    first_attacker: str
+    turn: str
+    battle_log: list[str]

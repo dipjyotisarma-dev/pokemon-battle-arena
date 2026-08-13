@@ -237,6 +237,218 @@ def generate_ai_team(
 
 
 
+def get_pokemon_by_slot(
+    team: list,
+    slot: int,
+):
+    """
+    Return a Pokémon from a battle team using its slot.
+    """
+    for pokemon in team:
+        if pokemon["slot"] == slot:
+            return pokemon
+
+    return None
+
+
+def select_ai_pokemon(
+    opponent_team: list,
+    used_slots: list,
+):
+    """
+    Randomly select one unused Pokémon from the AI team.
+    """
+
+    available_pokemon = [
+        pokemon
+        for pokemon in opponent_team
+        if pokemon["slot"] not in used_slots
+    ]
+
+    if not available_pokemon:
+        raise ValueError(
+            "No unused opponent Pokémon are available."
+        )
+
+    return random.choice(available_pokemon)
+
+
+def select_pokemon_for_match(
+    db: Session,
+    battle_id: str,
+    trainer_id: int,
+    trainer_slot: int,
+):
+    """
+    Select the trainer's Pokémon and randomly select
+    an unused AI Pokémon for the current match.
+    The match is then placed into match_intro state.
+    """
+
+    battle = (
+        db.query(Battle)
+        .filter(
+            Battle.id == battle_id,
+            Battle.trainer_id == trainer_id,
+        )
+        .first()
+    )
+
+    if battle is None:
+        raise ValueError(
+            "Battle not found."
+        )
+
+    if battle.status != "team_selection":
+        raise ValueError(
+            "Pokémon selection is not available in the current battle state."
+        )
+
+    if battle.current_match < 1 or battle.current_match > 6:
+        raise ValueError(
+            "Invalid current match."
+        )
+
+    trainer_pokemon = get_pokemon_by_slot(
+        battle.trainer_team,
+        trainer_slot,
+    )
+
+    if trainer_pokemon is None:
+        raise ValueError(
+            f"Invalid trainer slot: {trainer_slot}."
+        )
+
+    # Get previously used trainer slots.
+    match_history = battle.match_history or []
+
+    used_trainer_slots = [
+        match["trainer_slot"]
+        for match in match_history
+    ]
+
+    if trainer_slot in used_trainer_slots:
+        raise ValueError(
+            "This Pokémon has already participated in a match."
+        )
+
+    # Get previously used opponent slots.
+    used_opponent_slots = [
+        match["opponent_slot"]
+        for match in match_history
+    ]
+
+    opponent_pokemon = select_ai_pokemon(
+        battle.opponent_team,
+        used_opponent_slots,
+    )
+
+    # Determine first attacker
+    trainer_speed = trainer_pokemon["speed"]
+    opponent_speed = opponent_pokemon["speed"]
+
+    if trainer_speed > opponent_speed:
+        first_attacker = "trainer"
+
+    elif opponent_speed > trainer_speed:
+        first_attacker = "opponent"
+
+    else:
+        first_attacker = random.choice(
+            ["trainer", "opponent"]
+        )
+
+    # Create current match state
+    current_match_state = {
+        "trainer_slot": trainer_slot,
+        "opponent_slot": opponent_pokemon["slot"],
+
+        "trainer_pokemon": trainer_pokemon,
+        "opponent_pokemon": opponent_pokemon,
+
+        "trainer_current_hp": trainer_pokemon["hp"],
+        "opponent_current_hp": opponent_pokemon["hp"],
+
+        "first_attacker": first_attacker,
+        "turn": first_attacker,
+
+        "status": "match_intro",
+
+        "battle_log": [],
+    }
+
+    battle.current_match_state = current_match_state
+    battle.status = "match_intro"
+    battle.updated_at = datetime.now(timezone.utc)
+
+    try:
+        db.commit()
+        db.refresh(battle)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return battle
+
+
+def continue_battle(
+    db: Session,
+    battle_id: str,
+    trainer_id: int,
+):
+    """
+    Move the current battle from match_intro
+    to an active in-progress match.
+    """
+
+    battle = (
+        db.query(Battle)
+        .filter(
+            Battle.id == battle_id,
+            Battle.trainer_id == trainer_id,
+        )
+        .first()
+    )
+
+    if battle is None:
+        raise ValueError(
+            "Battle not found."
+        )
+
+    if battle.status != "match_intro":
+        raise ValueError(
+            "Battle cannot be continued from its current state."
+        )
+
+    if battle.current_match_state is None:
+        raise ValueError(
+            "Current match state is missing."
+        )
+
+    match_state = dict(battle.current_match_state)
+
+    match_state["status"] = "in_progress"
+
+    # The first attacker determined during match initialization
+    # becomes the first turn.
+    match_state["turn"] = match_state["first_attacker"]
+
+    battle.current_match_state = match_state
+    battle.status = "in_progress"
+    battle.updated_at = datetime.now(timezone.utc)
+
+    try:
+        db.commit()
+        db.refresh(battle)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return battle
+
+
 def start_battle(
     db: Session,
     trainer_id: int,
