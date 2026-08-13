@@ -1,3 +1,4 @@
+import random
 from sqlalchemy.orm import Session
 from app.db.models import (
     Pokemon,
@@ -328,4 +329,48 @@ def build_team_response(
 
     return TeamResponse(
         slots=slots
+    )
+
+
+def get_random_move_options(
+    db: Session,
+    pokemon_id: int,
+):
+    """
+    Return a random set of 10–12 moves
+    that the selected Pokémon can learn.
+    """
+    pokemon = (
+        db.query(Pokemon)
+        .filter(Pokemon.id == pokemon_id)
+        .first()
+    )
+
+    if pokemon is None:
+        raise ValueError(
+            f"Pokémon with ID {pokemon_id} does not exist."
+        )
+
+    available_moves = [
+        pokemon_move.move
+        for pokemon_move in pokemon.available_moves
+        if pokemon_move.move is not None
+    ]
+
+    if len(available_moves) < 4:
+        raise ValueError(
+            f"{pokemon.display_name} does not have "
+            "enough learnable moves."
+        )
+
+    # Select between 10 candidates,
+    # but never request more moves than exist.
+    option_count = min(
+        10,
+        len(available_moves),
+    )
+
+    return random.sample(
+        available_moves,
+        option_count,
     )

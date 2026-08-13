@@ -47,3 +47,16 @@ class TeamResponse(BaseModel):
     Represents a trainer's complete team.
     """
     slots: list[TeamSlotResponse]
+
+
+class MoveOptionResponse(BaseModel):
+    """
+    Represents a move offered to the trainer
+    during team building.
+    """
+    id: int
+    move_name: str
+    display_name: str
+    move_type: str
+    category: str
+    base_power: int

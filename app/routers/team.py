@@ -3,11 +3,16 @@ from sqlalchemy.orm import Session
 from app.dependencies.auth import require_trainer
 from app.db.database import get_db
 from app.db.models import User
-from app.schemas.team import TeamCreate, TeamResponse
+from app.schemas.team import (
+    TeamCreate,
+    TeamResponse,
+    MoveOptionResponse,
+)
 from app.services.team_service import (
     create_team,
     get_team,
     update_team,
+    get_random_move_options,
 )
 
 router = APIRouter(
@@ -41,6 +46,39 @@ def create_trainer_team(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(error),
         )
+
+
+@router.get(
+    "/{pokemon_id}/move-options",
+    response_model=list[MoveOptionResponse],
+    status_code=status.HTTP_200_OK,
+)
+def get_move_options(
+    pokemon_id: int,
+    current_user: User = Depends(require_trainer),
+    db: Session = Depends(get_db),
+):
+    """
+    Return 10–12 randomly selected moves
+    that the Pokémon can learn.
+    The authenticated trainer is required because
+    this endpoint is part of the team-building workflow.
+    """
+
+    try:
+        moves = get_random_move_options(
+            db=db,
+            pokemon_id=pokemon_id,
+        )
+
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        )
+
+    return moves
+
 
 
 @router.get(
