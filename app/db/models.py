@@ -1,5 +1,15 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, JSON, Float, UniqueConstraint
+from sqlalchemy import (
+    Column,
+    Integer,
+    String,
+    ForeignKey,
+    DateTime,
+    JSON,
+    Float,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
+from uuid import uuid4
 from app.db.database import Base
 
 class User(Base):
@@ -27,6 +37,13 @@ class User(Base):
     # One trainer has multiple team slots, with exactly six enforced by application logic.
     team = relationship(
         "TrainerTeam",
+        back_populates="trainer",
+        cascade="all, delete-orphan"
+    )
+
+    # One trainer can have multiple battle records
+    battles = relationship(
+        "Battle",
         back_populates="trainer",
         cascade="all, delete-orphan"
     )
@@ -159,6 +176,38 @@ class TrainerTeam(Base):
         foreign_keys=[move4_id]
     )
 
+
+
+class Battle(Base):
+
+    __tablename__ = "battles"
+
+    id = Column(String(36),primary_key=True,default=lambda: str(uuid4()),)
+    trainer_id = Column(Integer,ForeignKey("users.id"),nullable=False,index=True)
+    status = Column(String,nullable=False,default="team_selection",index=True)
+    current_match = Column(Integer,nullable=False,default=1)
+    completed_matches = Column(Integer,nullable=False,default=0)
+    completed_wins = Column(Integer,nullable=False,default=0)
+    completed_points = Column(Float,nullable=False,default=0.0)
+
+    # Snapshot of the trainer's finalized team
+    trainer_team = Column(JSON,nullable=False)
+
+    # Randomly generated AI team
+    opponent_team = Column(JSON,nullable=False)
+
+    # State of the currently active Pokémon match
+    current_match_state = Column(JSON,nullable=True)
+
+    # Results of all completed matches
+    match_history = Column(JSON,nullable=False,default=list)
+    created_at = Column(DateTime,nullable=False)
+    updated_at = Column(DateTime,nullable=False)
+
+    trainer = relationship(
+        "User",
+        back_populates="battles"
+    )
 
 
 
