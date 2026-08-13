@@ -6,6 +6,7 @@ from app.routers.auth import router as auth_router
 from app.routers.pokemon import router as pokemon_router
 from app.routers.team import router as team_router
 from app.routers.trainer import router as trainer_router
+from app.routers.leaderboard import router as leaderboard_router
 
 
 @asynccontextmanager
@@ -28,6 +29,7 @@ app.include_router(auth_router)
 app.include_router(pokemon_router)
 app.include_router(team_router)
 app.include_router(trainer_router)
+app.include_router(leaderboard_router)
 
 @app.get("/")
 async def home():
