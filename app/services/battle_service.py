@@ -16,7 +16,6 @@ SPECIAL_CATEGORIES = {
     "ultra_beast",
 }
 
-
 ACTIVE_BATTLE_STATUSES = {
     "team_selection",
     "match_intro",
@@ -393,7 +392,9 @@ def complete_match(
     Calculates match points, stores the match result,
     updates Battle statistics, and immediately updates
     the trainer's leaderboard entry.
-    This function does not advance current_match.
+
+    This function advances the battle to the next match
+    when fewer than six matches have been completed.
     """
 
     trainer_max_hp = state["trainer_max_hp"]
@@ -456,13 +457,22 @@ def complete_match(
 
     battle.completed_points += match_points
 
-    # Store the result in the current match state
+    # Store the completed match result in the current
+    # state so it can be returned in the API response.
     state["match_result"] = match_result
     state["match_points"] = match_points
     state["status"] = "match_complete"
 
+    # The completed match is finished. Move directly
+    # to the next match if matches remain.
+    if battle.completed_matches < 6:
+        battle.current_match += 1
+        battle.status = "team_selection"
+
+    else:
+        battle.status = "battle_complete"
+
     battle.current_match_state = state
-    battle.status = "match_complete"
 
     # Update leaderboard immediately
     leaderboard = (
