@@ -200,25 +200,7 @@ def execute_move(
 
     state = battle.current_match_state
 
-    match_result = None
-
-    if battle.status == "match_complete":
-
-        trainer_hp = state["trainer_current_hp"]
-        opponent_hp = state["opponent_current_hp"]
-
-        if trainer_hp > 0 and opponent_hp <= 0:
-            winner = "trainer"
-        elif opponent_hp > 0 and trainer_hp <= 0:
-            winner = "opponent"
-        else:
-            winner = None
-
-        match_result = {
-            "winner": winner,
-            "trainer_pokemon": state["trainer_pokemon"]["display_name"],
-            "opponent_pokemon": state["opponent_pokemon"]["display_name"],
-        }
+    match_result = state.get("match_result")
 
     return BattleMoveResponse(
         battle_id=battle.id,
@@ -233,4 +215,8 @@ def execute_move(
         turn=state.get("turn"),
         battle_log=state.get("battle_log", []),
         match_result=match_result,
+        match_points=state.get("match_points"),
+        completed_matches=battle.completed_matches,
+        completed_wins=battle.completed_wins,
+        completed_points=battle.completed_points,
     )

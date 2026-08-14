@@ -81,6 +81,10 @@ class BattleMoveResponse(BaseModel):
     trainer_max_hp: int
     opponent_current_hp: int
     opponent_max_hp: int
-    turn: str
+    turn: str | None
     battle_log: list[str]
     match_result: dict | None = None
+    match_points: float | None = None
+    completed_matches: int
+    completed_wins: int
+    completed_points: float

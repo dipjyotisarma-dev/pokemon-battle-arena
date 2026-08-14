@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.db.models import (
     Battle,
+    Leaderboard,
     Pokemon,
     PokemonMove,
     TrainerTeam,
@@ -381,6 +382,111 @@ def generate_ai_team(
     return snapshots
 
 
+def complete_match(
+    db: Session,
+    battle: Battle,
+    state: dict,
+    winner: str,
+):
+    """
+    Finalize one completed Pokémon match.
+    Calculates match points, stores the match result,
+    updates Battle statistics, and immediately updates
+    the trainer's leaderboard entry.
+    This function does not advance current_match.
+    """
+
+    trainer_max_hp = state["trainer_max_hp"]
+    trainer_remaining_hp = state["trainer_current_hp"]
+
+    opponent_max_hp = state["opponent_max_hp"]
+    opponent_remaining_hp = state["opponent_current_hp"]
+
+    if trainer_max_hp <= 0 or opponent_max_hp <= 0:
+        raise ValueError(
+            "Invalid battle HP values for match scoring."
+        )
+
+    damage_ratio = (opponent_max_hp - opponent_remaining_hp) / opponent_max_hp
+
+    loss_ratio = (trainer_max_hp - trainer_remaining_hp) / trainer_max_hp
+
+    base_points = (damage_ratio - loss_ratio) * 100
+
+    if winner == "trainer":
+        match_points = 10 + base_points
+
+    elif winner == "opponent":
+        match_points = base_points
+
+    else:
+        raise ValueError(
+            "Invalid match winner."
+        )
+
+    match_result = {
+        "match": battle.current_match,
+        "trainer_slot": state["trainer_slot"],
+        "opponent_slot": state["opponent_slot"],
+        "trainer_pokemon": state["trainer_pokemon"]["display_name"],
+        "opponent_pokemon": state["opponent_pokemon"]["display_name"],
+        "trainer_max_hp": trainer_max_hp,
+        "trainer_remaining_hp": trainer_remaining_hp,
+        "opponent_max_hp": opponent_max_hp,
+        "opponent_remaining_hp": opponent_remaining_hp,
+        "damage_ratio": damage_ratio,
+        "loss_ratio": loss_ratio,
+        "base_points": base_points,
+        "match_points": match_points,
+        "winner": winner,
+    }
+
+    match_history = list(
+        battle.match_history or []
+    )
+
+    match_history.append(match_result)
+
+    battle.match_history = match_history
+
+    battle.completed_matches += 1
+
+    if winner == "trainer":
+        battle.completed_wins += 1
+
+    battle.completed_points += match_points
+
+    # Store the result in the current match state
+    state["match_result"] = match_result
+    state["match_points"] = match_points
+    state["status"] = "match_complete"
+
+    battle.current_match_state = state
+    battle.status = "match_complete"
+
+    # Update leaderboard immediately
+    leaderboard = (
+        db.query(Leaderboard)
+        .filter(
+            Leaderboard.trainer_id == battle.trainer_id
+        )
+        .first()
+    )
+
+    if leaderboard is None:
+        raise ValueError(
+            "Leaderboard entry not found for trainer."
+        )
+
+    leaderboard.total_matches += 1
+    leaderboard.points += match_points
+
+    if winner == "trainer":
+        leaderboard.wins += 1
+
+    return match_result
+
+
 
 def get_pokemon_by_slot(
     team: list,
@@ -608,21 +714,23 @@ def continue_battle(
         match_state["battle_log"] = battle_log
 
         if trainer_hp <= 0:
-
             battle_log.append(
                 f"{trainer_pokemon['display_name']} fainted."
             )
-
-            match_state["status"] = "match_complete"
-            battle.status = "match_complete"
+            match_state["trainer_current_hp"] = 0
+            match_state["battle_log"] = battle_log
+            complete_match(
+                db=db,
+                battle=battle,
+                state=match_state,
+                winner="opponent",
+            )
 
         else:
-
             match_state["turn"] = "trainer"
             battle.status = "in_progress"
 
     else:
-
         battle.status = "in_progress"
 
     battle.current_match_state = match_state
@@ -723,10 +831,14 @@ def execute_trainer_move(
 
         state["opponent_current_hp"] = 0
         state["battle_log"] = battle_log
-        state["status"] = "match_complete"
 
-        battle.current_match_state = state
-        battle.status = "match_complete"
+        complete_match(
+            db=db,
+            battle=battle,
+            state=state,
+            winner="trainer",
+        )
+
         battle.updated_at = datetime.now(timezone.utc)
 
         try:
@@ -755,7 +867,6 @@ def execute_trainer_move(
 
     # Trainer defeated
     if trainer_hp <= 0:
-
         battle_log.append(
             f"{trainer_pokemon['display_name']} fainted."
         )
@@ -763,10 +874,13 @@ def execute_trainer_move(
         state["trainer_current_hp"] = 0
         state["opponent_current_hp"] = opponent_hp
         state["battle_log"] = battle_log
-        state["status"] = "match_complete"
 
-        battle.current_match_state = state
-        battle.status = "match_complete"
+        complete_match(
+            db=db,
+            battle=battle,
+            state=state,
+            winner="opponent",
+        )
         battle.updated_at = datetime.now(timezone.utc)
 
         try:
