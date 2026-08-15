@@ -28,6 +28,14 @@ class BattlePokemonResponse(BaseModel):
     moves: list[BattleMoveOptionResponse]
 
 
+class BattleTeamPreviewResponse(BaseModel):
+    slot: int
+    id: int
+    name: str
+    display_name: str
+    image: str
+
+
 class BattleStartResponse(BaseModel):
     battle_id: str
     status: str
@@ -35,8 +43,8 @@ class BattleStartResponse(BaseModel):
     completed_matches: int
     completed_wins: int
     completed_points: float
-    trainer_team: list[BattlePokemonResponse]
-    opponent_team: list[BattlePokemonResponse]
+    trainer_team: list[BattleTeamPreviewResponse]
+    opponent_team: list[BattleTeamPreviewResponse]
 
 
 class BattleMatchStartResponse(BaseModel):

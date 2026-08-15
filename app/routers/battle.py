@@ -50,6 +50,28 @@ def create_battle(
             detail=str(exc),
         )
 
+    trainer_team_preview = [
+        {
+            "slot": pokemon["slot"],
+            "id": pokemon["id"],
+            "name": pokemon["name"],
+            "display_name": pokemon["display_name"],
+            "image": pokemon["image"],
+        }
+        for pokemon in battle.trainer_team
+    ]
+
+    opponent_team_preview = [
+        {
+            "slot": pokemon["slot"],
+            "id": pokemon["id"],
+            "name": pokemon["name"],
+            "display_name": pokemon["display_name"],
+            "image": pokemon["image"],
+        }
+        for pokemon in battle.opponent_team
+    ]
+
     return BattleStartResponse(
         battle_id=battle.id,
         status=battle.status,
@@ -57,8 +79,8 @@ def create_battle(
         completed_matches=battle.completed_matches,
         completed_wins=battle.completed_wins,
         completed_points=battle.completed_points,
-        trainer_team=battle.trainer_team,
-        opponent_team=battle.opponent_team,
+        trainer_team=trainer_team_preview,
+        opponent_team=opponent_team_preview,
     )
 
 
