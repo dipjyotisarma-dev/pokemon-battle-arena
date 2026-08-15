@@ -58,6 +58,15 @@ class BattleMatchResultResponse(BaseModel):
     winner: str
 
 
+class BattleExitResponse(BaseModel):
+    battle_id: str
+    status: str
+    completed_matches: int
+    completed_wins: int
+    completed_points: float
+    rank: int | None
+
+
 class BattleTeamPreviewResponse(BaseModel):
     slot: int
     id: int

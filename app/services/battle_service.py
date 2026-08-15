@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import Session
 from app.db.models import (
     Battle,
+    User,
     Leaderboard,
     Pokemon,
     PokemonMove,
@@ -824,6 +825,96 @@ def back_to_trainer_selection(
         raise
 
     return battle
+
+
+def exit_battle(
+    db: Session,
+    battle_id: str,
+    trainer_id: int,
+):
+    """
+    Abandon the current battle.
+
+    Only completed matches count toward the trainer's
+    completed statistics. Any unfinished current match
+    is discarded.
+    """
+
+    battle = (
+        db.query(Battle)
+        .filter(
+            Battle.id == battle_id,
+            Battle.trainer_id == trainer_id,
+        )
+        .first()
+    )
+
+    if battle is None:
+        raise ValueError(
+            "Battle not found."
+        )
+
+    if battle.status not in ACTIVE_BATTLE_STATUSES:
+        raise ValueError(
+            "The battle cannot be exited from its current state."
+        )
+
+    # Preserve all completed-match data.
+    completed_matches = battle.completed_matches
+    completed_wins = battle.completed_wins
+    completed_points = battle.completed_points
+
+    # Discard the unfinished current match completely.
+    battle.current_match_state = None
+
+    # Mark the battle as abandoned.
+    battle.status = "abandoned"
+    battle.updated_at = datetime.now(timezone.utc)
+
+    # Calculate the trainer's current leaderboard rank.
+    leaderboard_entries = (
+        db.query(User, Leaderboard)
+        .join(
+            Leaderboard,
+            User.id == Leaderboard.trainer_id,
+        )
+        .filter(
+            User.role == "trainer"
+        )
+        .order_by(
+            Leaderboard.points.desc(),
+            Leaderboard.wins.desc(),
+            Leaderboard.total_matches.asc(),
+            User.username.asc(),
+        )
+        .all()
+    )
+
+    rank = None
+
+    for position, (user, leaderboard) in enumerate(
+        leaderboard_entries,
+        start=1,
+    ):
+        if user.id == trainer_id:
+            rank = position
+            break
+
+    try:
+        db.commit()
+        db.refresh(battle)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return (
+        battle,
+        completed_matches,
+        completed_wins,
+        completed_points,
+        rank,
+    )
 
 
 def continue_battle(

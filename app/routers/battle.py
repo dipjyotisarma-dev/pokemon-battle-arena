@@ -10,13 +10,15 @@ from app.schemas.battle import (
     BattleContinueResponse,
     BattleMoveRequest,
     BattleMoveResponse,
-    BattleMatchStartResponse
+    BattleMatchStartResponse,
+    BattleExitResponse,
 )
 from app.services.battle_service import (
     start_battle,
     start_match,
     select_pokemon_for_match,
     back_to_trainer_selection,
+    exit_battle,
     continue_battle,
     execute_trainer_move,
 )
@@ -246,6 +248,59 @@ def back_to_selection(
         current_match=battle.current_match,
         opponent_pokemon=match_state["opponent_pokemon"],
         available_trainer_pokemon=available_trainer_pokemon,
+    )
+
+
+@router.post(
+    "/{battle_id}/exit",
+    response_model=BattleExitResponse,
+)
+def exit_current_battle(
+    battle_id: str,
+    current_user: User = Depends(require_trainer),
+    db: Session = Depends(get_db),
+):
+    """
+    Exit the current battle.
+
+    Only completed matches are counted.
+    Any unfinished current match is discarded.
+    """
+
+    try:
+        (
+            battle,
+            completed_matches,
+            completed_wins,
+            completed_points,
+            rank,
+        ) = exit_battle(
+            db=db,
+            battle_id=battle_id,
+            trainer_id=current_user.id,
+        )
+
+    except ValueError as exc:
+        message = str(exc)
+
+        if message == "Battle not found.":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message,
+        )
+
+    return BattleExitResponse(
+        battle_id=battle.id,
+        status=battle.status,
+        completed_matches=completed_matches,
+        completed_wins=completed_wins,
+        completed_points=completed_points,
+        rank=rank,
     )
 
 
