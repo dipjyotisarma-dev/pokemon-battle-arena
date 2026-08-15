@@ -28,6 +28,19 @@ class BattlePokemonResponse(BaseModel):
     moves: list[BattleMoveOptionResponse]
 
 
+class BattleEventResponse(BaseModel):
+    type: str
+    actor: str | None = None
+    pokemon: str | None = None
+    target: str | None = None
+    move: str | None = None
+    move_type: str | None = None
+    category: str | None = None
+    base_power: int | None = None
+    damage: int | None = None
+    message: str | None = None
+
+
 class BattleTeamPreviewResponse(BaseModel):
     slot: int
     id: int
@@ -80,7 +93,13 @@ class BattleContinueResponse(BaseModel):
     opponent_max_hp: int
     first_attacker: str
     turn: str
+    events: list[BattleEventResponse]
     battle_log: list[str]
+    match_result: dict | None = None
+    match_points: float | None = None
+    completed_matches: int
+    completed_wins: int
+    completed_points: float
 
 
 class BattleMoveRequest(BaseModel):
@@ -98,6 +117,7 @@ class BattleMoveResponse(BaseModel):
     opponent_current_hp: int
     opponent_max_hp: int
     turn: str | None
+    events: list[BattleEventResponse]
     battle_log: list[str]
     match_result: dict | None = None
     match_points: float | None = None

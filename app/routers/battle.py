@@ -297,7 +297,13 @@ def continue_current_battle(
         opponent_max_hp=match_state["opponent_max_hp"],
         first_attacker=match_state["first_attacker"],
         turn=match_state["turn"],
+        events=match_state.get("events", []),
         battle_log=match_state["battle_log"],
+        match_result=match_state.get("match_result"),
+        match_points=match_state.get("match_points"),
+        completed_matches=battle.completed_matches,
+        completed_wins=battle.completed_wins,
+        completed_points=battle.completed_points,
     )
 
 
@@ -351,6 +357,7 @@ def execute_move(
         opponent_current_hp=state["opponent_current_hp"],
         opponent_max_hp=state["opponent_max_hp"],
         turn=state.get("turn"),
+        events=state.get("events", []),
         battle_log=state.get("battle_log", []),
         match_result=match_result,
         match_points=state.get("match_points"),

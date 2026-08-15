@@ -167,6 +167,34 @@ def execute_attack(
     return new_hp, damage, log
 
 
+def build_attack_event(
+    actor: str,
+    attacker: dict,
+    target: dict,
+    move: dict,
+    damage: int,
+):
+    """
+    Create a structured event for one Pokémon attack.
+    """
+
+    return {
+        "type": "attack",
+        "actor": actor,
+        "pokemon": attacker["display_name"],
+        "target": target["display_name"],
+        "move": move["display_name"],
+        "move_type": move["move_type"],
+        "category": move["category"],
+        "base_power": move["base_power"],
+        "damage": damage,
+        "message": (
+            f"{attacker['display_name']} used "
+            f"{move['display_name']} and dealt "
+            f"{damage} damage."
+        ),
+    }
+
 
 def build_pokemon_snapshot(
     pokemon: Pokemon,
@@ -838,6 +866,8 @@ def continue_battle(
 
     match_state["status"] = "in_progress"
 
+    events = []
+
     match_state["turn"] = match_state["first_attacker"]
 
     # If AI is faster, execute its first attack now.
@@ -857,6 +887,16 @@ def continue_battle(
             move=opponent_move,
         )
 
+        events.append(
+            build_attack_event(
+                actor="opponent",
+                attacker=opponent_pokemon,
+                target=trainer_pokemon,
+                move=opponent_move,
+                damage=damage,
+            )
+        )
+
         battle_log = list(
             match_state.get("battle_log", [])
         )
@@ -870,8 +910,22 @@ def continue_battle(
             battle_log.append(
                 f"{trainer_pokemon['display_name']} fainted."
             )
+
+            events.append(
+                {
+                    "type": "faint",
+                    "actor": "opponent",
+                    "pokemon": trainer_pokemon["display_name"],
+                    "message": (
+                        f"{trainer_pokemon['display_name']} fainted."
+                    ),
+                }
+            )
+
             match_state["trainer_current_hp"] = 0
             match_state["battle_log"] = battle_log
+            match_state['events'] = events
+
             complete_match(
                 db=db,
                 battle=battle,
@@ -881,6 +935,7 @@ def continue_battle(
 
         else:
             match_state["turn"] = "trainer"
+            match_state["events"] = events
             battle.status = "in_progress"
 
     else:
@@ -938,6 +993,7 @@ def execute_trainer_move(
     state = dict(
         battle.current_match_state
     )
+    events = []
 
     if state["turn"] != "trainer":
         raise ValueError(
@@ -973,6 +1029,16 @@ def execute_trainer_move(
         move=trainer_move,
     )
 
+    events.append(
+        build_attack_event(
+            actor="trainer",
+            attacker=trainer_pokemon,
+            target=opponent_pokemon,
+            move=trainer_move,
+            damage=damage,
+        )
+    )
+
     battle_log.append(log)
 
     # Opponent defeated
@@ -982,8 +1048,20 @@ def execute_trainer_move(
             f"{opponent_pokemon['display_name']} fainted."
         )
 
+        events.append(
+            {
+                "type": "faint",
+                "actor": "trainer",
+                "pokemon": opponent_pokemon["display_name"],
+                "message": (
+                    f"{opponent_pokemon['display_name']} fainted."
+                ),
+            }
+        )
+
         state["opponent_current_hp"] = 0
         state["battle_log"] = battle_log
+        state["events"] = events
 
         complete_match(
             db=db,
@@ -1016,6 +1094,16 @@ def execute_trainer_move(
         move=opponent_move,
     )
 
+    events.append(
+        build_attack_event(
+            actor="opponent",
+            attacker=opponent_pokemon,
+            target=trainer_pokemon,
+            move=opponent_move,
+            damage=damage,
+        )
+    )
+
     battle_log.append(log)
 
     # Trainer defeated
@@ -1024,9 +1112,21 @@ def execute_trainer_move(
             f"{trainer_pokemon['display_name']} fainted."
         )
 
+        events.append(
+            {
+                "type": "faint",
+                "actor": "opponent",
+                "pokemon": trainer_pokemon["display_name"],
+                "message": (
+                    f"{trainer_pokemon['display_name']} fainted."
+                ),
+            }
+        )
+
         state["trainer_current_hp"] = 0
         state["opponent_current_hp"] = opponent_hp
         state["battle_log"] = battle_log
+        state["events"] = events
 
         complete_match(
             db=db,
@@ -1052,6 +1152,7 @@ def execute_trainer_move(
     state["turn"] = "trainer"
     state["status"] = "in_progress"
     state["battle_log"] = battle_log
+    state["events"] = events
 
     battle.current_match_state = state
     battle.status = "in_progress"
