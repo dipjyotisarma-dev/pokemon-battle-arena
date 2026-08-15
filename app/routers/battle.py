@@ -10,9 +10,11 @@ from app.schemas.battle import (
     BattleContinueResponse,
     BattleMoveRequest,
     BattleMoveResponse,
+    BattleMatchStartResponse
 )
 from app.services.battle_service import (
     start_battle,
+    start_match,
     select_pokemon_for_match,
     continue_battle,
     execute_trainer_move,
@@ -61,6 +63,63 @@ def create_battle(
 
 
 @router.post(
+    "/{battle_id}/start-match",
+    response_model=BattleMatchStartResponse,
+)
+def start_current_match(
+    battle_id: str,
+    current_user: User = Depends(require_trainer),
+    db: Session = Depends(get_db),
+):
+    """
+    Start the next Pokémon match by selecting an
+    unused AI opponent Pokémon.
+    """
+    try:
+        battle = start_match(
+            db=db,
+            battle_id=battle_id,
+            trainer_id=current_user.id,
+        )
+
+    except ValueError as exc:
+        message = str(exc)
+
+        if message == "Battle not found.":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message,
+        )
+
+    match_state = battle.current_match_state
+
+    used_trainer_slots = [
+        match["trainer_slot"]
+        for match in (battle.match_history or [])
+    ]
+
+    available_trainer_slots = [
+        pokemon["slot"]
+        for pokemon in battle.trainer_team
+        if pokemon["slot"] not in used_trainer_slots
+    ]
+
+    return BattleMatchStartResponse(
+        battle_id=battle.id,
+        status=battle.status,
+        current_match=battle.current_match,
+        opponent_pokemon=match_state["opponent_pokemon"],
+        available_trainer_slots=available_trainer_slots,
+    )
+
+
+
+@router.post(
     "/{battle_id}/select-pokemon",
     response_model=BattleMatchIntroResponse,
 )
@@ -71,9 +130,8 @@ def select_battle_pokemon(
     db: Session = Depends(get_db),
 ):
     """
-    Select the trainer's Pokémon for the current match
-    and initialize the match against a random unused
-    opponent Pokémon.
+    Select the trainer's Pokémon after the AI opponent
+    has already been revealed and initialize the match.
     """
     try:
         battle = select_pokemon_for_match(

@@ -17,10 +17,10 @@ SPECIAL_CATEGORIES = {
 }
 
 ACTIVE_BATTLE_STATUSES = {
-    "team_selection",
+    "match_preparation",
+    "trainer_selection",
     "match_intro",
     "in_progress",
-    "match_complete",
 }
 
 TYPE_ADVANTAGES = {
@@ -393,8 +393,8 @@ def complete_match(
     updates Battle statistics, and immediately updates
     the trainer's leaderboard entry.
 
-    This function advances the battle to the next match
-    when fewer than six matches have been completed.
+    This function advances current_match when another
+    match remains in the battle.
     """
 
     trainer_max_hp = state["trainer_max_hp"]
@@ -467,8 +467,7 @@ def complete_match(
     # to the next match if matches remain.
     if battle.completed_matches < 6:
         battle.current_match += 1
-        battle.status = "team_selection"
-
+        battle.status = "match_preparation"
     else:
         battle.status = "battle_complete"
 
@@ -534,16 +533,16 @@ def select_ai_pokemon(
     return random.choice(available_pokemon)
 
 
-def select_pokemon_for_match(
+def start_match(
     db: Session,
     battle_id: str,
     trainer_id: int,
-    trainer_slot: int,
 ):
     """
-    Select the trainer's Pokémon and randomly select
-    an unused AI Pokémon for the current match.
-    The match is then placed into match_intro state.
+    Prepare the next Pokémon match by selecting an unused
+    AI Pokémon.
+
+    The trainer has not selected their Pokémon yet.
     """
 
     battle = (
@@ -560,7 +559,75 @@ def select_pokemon_for_match(
             "Battle not found."
         )
 
-    if battle.status != "team_selection":
+    if battle.status != "match_preparation":
+        raise ValueError(
+            "The next match cannot be started from the current battle state."
+        )
+
+    if battle.current_match < 1 or battle.current_match > 6:
+        raise ValueError(
+            "Invalid current match."
+        )
+
+    match_history = battle.match_history or []
+
+    used_opponent_slots = [
+        match["opponent_slot"]
+        for match in match_history
+    ]
+
+    opponent_pokemon = select_ai_pokemon(
+        battle.opponent_team,
+        used_opponent_slots,
+    )
+
+    current_match_state = {
+        "opponent_slot": opponent_pokemon["slot"],
+        "opponent_pokemon": opponent_pokemon,
+        "status": "trainer_selection",
+    }
+
+    battle.current_match_state = current_match_state
+    battle.status = "trainer_selection"
+    battle.updated_at = datetime.now(timezone.utc)
+
+    try:
+        db.commit()
+        db.refresh(battle)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return battle
+
+
+def select_pokemon_for_match(
+    db: Session,
+    battle_id: str,
+    trainer_id: int,
+    trainer_slot: int,
+):
+    """
+    Select the trainer's Pokémon after the AI opponent
+    has already been revealed.
+    The match is then placed into match_intro state.
+    """
+    battle = (
+        db.query(Battle)
+        .filter(
+            Battle.id == battle_id,
+            Battle.trainer_id == trainer_id,
+        )
+        .first()
+    )
+
+    if battle is None:
+        raise ValueError(
+            "Battle not found."
+        )
+
+    if battle.status != "trainer_selection":
         raise ValueError(
             "Pokémon selection is not available in the current battle state."
         )
@@ -568,6 +635,24 @@ def select_pokemon_for_match(
     if battle.current_match < 1 or battle.current_match > 6:
         raise ValueError(
             "Invalid current match."
+        )
+
+    if battle.current_match_state is None:
+        raise ValueError(
+            "Current match state is missing."
+        )
+
+    current_match_state = dict(
+        battle.current_match_state
+    )
+
+    opponent_pokemon = current_match_state.get(
+        "opponent_pokemon"
+    )
+
+    if opponent_pokemon is None:
+        raise ValueError(
+            "Opponent Pokémon has not been selected."
         )
 
     trainer_pokemon = get_pokemon_by_slot(
@@ -593,18 +678,7 @@ def select_pokemon_for_match(
             "This Pokémon has already participated in a match."
         )
 
-    # Get previously used opponent slots.
-    used_opponent_slots = [
-        match["opponent_slot"]
-        for match in match_history
-    ]
-
-    opponent_pokemon = select_ai_pokemon(
-        battle.opponent_team,
-        used_opponent_slots,
-    )
-
-    # Determine first attacker
+    # Determine first attacker.
     trainer_speed = trainer_pokemon["speed"]
     opponent_speed = opponent_pokemon["speed"]
 
@@ -619,26 +693,19 @@ def select_pokemon_for_match(
             ["trainer", "opponent"]
         )
 
-    # Create current match state
-    current_match_state = {
+    # Complete the current match state.
+    current_match_state.update({
         "trainer_slot": trainer_slot,
-        "opponent_slot": opponent_pokemon["slot"],
-
         "trainer_pokemon": trainer_pokemon,
-        "opponent_pokemon": opponent_pokemon,
-
         "trainer_current_hp": trainer_pokemon["battle_max_hp"],
         "trainer_max_hp": trainer_pokemon["battle_max_hp"],
         "opponent_current_hp": opponent_pokemon["battle_max_hp"],
         "opponent_max_hp": opponent_pokemon["battle_max_hp"],
-
         "first_attacker": first_attacker,
         "turn": first_attacker,
-
         "status": "match_intro",
-
         "battle_log": [],
-    }
+    })
 
     battle.current_match_state = current_match_state
     battle.status = "match_intro"
@@ -931,7 +998,7 @@ def start_battle(
 ):
     """
     Create a new battle for a trainer.
-    The battle starts in team_selection state.
+    The battle starts in match_preparation state.
     """
 
     # Prevent multiple active battles for the same trainer.
@@ -964,7 +1031,7 @@ def start_battle(
 
     battle = Battle(
         trainer_id=trainer_id,
-        status="team_selection",
+        status="match_preparation",
         current_match=1,
         completed_matches=0,
         completed_wins=0,
