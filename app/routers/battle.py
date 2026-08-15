@@ -16,6 +16,7 @@ from app.services.battle_service import (
     start_battle,
     start_match,
     select_pokemon_for_match,
+    back_to_trainer_selection,
     continue_battle,
     execute_trainer_move,
 )
@@ -188,6 +189,63 @@ def select_battle_pokemon(
         trainer_pokemon=trainer_pokemon,
         opponent_pokemon=opponent_pokemon,
         first_attacker=match_state["first_attacker"],
+    )
+
+
+@router.post(
+    "/{battle_id}/back-to-selection",
+    response_model=BattleMatchStartResponse,
+)
+def back_to_selection(
+    battle_id: str,
+    current_user: User = Depends(require_trainer),
+    db: Session = Depends(get_db),
+):
+    """
+    Return from match introduction to trainer Pokémon
+    selection without changing the selected opponent.
+    """
+
+    try:
+        battle = back_to_trainer_selection(
+            db=db,
+            battle_id=battle_id,
+            trainer_id=current_user.id,
+        )
+
+    except ValueError as exc:
+        message = str(exc)
+
+        if message == "Battle not found.":
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=message,
+            )
+
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=message,
+        )
+
+    match_state = battle.current_match_state
+
+    used_trainer_slots = [
+        match["trainer_slot"]
+        for match in (battle.match_history or [])
+    ]
+
+    available_trainer_pokemon = [
+        pokemon
+        for pokemon in battle.trainer_team
+        if pokemon["slot"] not in used_trainer_slots
+    ]
+
+    return BattleMatchStartResponse(
+        battle_id=battle.id,
+        status=battle.status,
+        current_match=battle.current_match,
+        opponent_pokemon=match_state["opponent_pokemon"],
+        available_trainer_pokemon=available_trainer_pokemon,
     )
 
 

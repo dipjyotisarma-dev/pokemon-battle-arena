@@ -722,6 +722,82 @@ def select_pokemon_for_match(
     return battle
 
 
+def back_to_trainer_selection(
+    db: Session,
+    battle_id: str,
+    trainer_id: int,
+):
+    """
+    Return from the match introduction screen to
+    trainer Pokémon selection.
+
+    The selected trainer Pokémon is discarded.
+    The already-selected AI opponent remains unchanged.
+    """
+
+    battle = (
+        db.query(Battle)
+        .filter(
+            Battle.id == battle_id,
+            Battle.trainer_id == trainer_id,
+        )
+        .first()
+    )
+
+    if battle is None:
+        raise ValueError(
+            "Battle not found."
+        )
+
+    if battle.status != "match_intro":
+        raise ValueError(
+            "Cannot return to Pokémon selection from the current battle state."
+        )
+
+    if battle.current_match_state is None:
+        raise ValueError(
+            "Current match state is missing."
+        )
+
+    current_match_state = dict(
+        battle.current_match_state
+    )
+
+    opponent_pokemon = current_match_state.get(
+        "opponent_pokemon"
+    )
+
+    opponent_slot = current_match_state.get(
+        "opponent_slot"
+    )
+
+    if opponent_pokemon is None or opponent_slot is None:
+        raise ValueError(
+            "Opponent Pokémon has not been selected."
+        )
+
+    # Keep only the opponent information.
+    # The trainer's previous selection is discarded.
+    battle.current_match_state = {
+        "opponent_slot": opponent_slot,
+        "opponent_pokemon": opponent_pokemon,
+        "status": "trainer_selection",
+    }
+
+    battle.status = "trainer_selection"
+    battle.updated_at = datetime.now(timezone.utc)
+
+    try:
+        db.commit()
+        db.refresh(battle)
+
+    except Exception:
+        db.rollback()
+        raise
+
+    return battle
+
+
 def continue_battle(
     db: Session,
     battle_id: str,
