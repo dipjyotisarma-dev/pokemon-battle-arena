@@ -41,6 +41,23 @@ class BattleEventResponse(BaseModel):
     message: str | None = None
 
 
+class BattleMatchResultResponse(BaseModel):
+    match: int
+    trainer_slot: int
+    opponent_slot: int
+    trainer_pokemon: str
+    opponent_pokemon: str
+    trainer_max_hp: int
+    trainer_remaining_hp: int
+    opponent_max_hp: int
+    opponent_remaining_hp: int
+    damage_ratio: float
+    loss_ratio: float
+    base_points: float
+    match_points: float
+    winner: str
+
+
 class BattleTeamPreviewResponse(BaseModel):
     slot: int
     id: int
@@ -95,7 +112,7 @@ class BattleContinueResponse(BaseModel):
     turn: str
     events: list[BattleEventResponse]
     battle_log: list[str]
-    match_result: dict | None = None
+    match_result: BattleMatchResultResponse | None = None
     match_points: float | None = None
     completed_matches: int
     completed_wins: int
@@ -119,7 +136,7 @@ class BattleMoveResponse(BaseModel):
     turn: str | None
     events: list[BattleEventResponse]
     battle_log: list[str]
-    match_result: dict | None = None
+    match_result: BattleMatchResultResponse | None = None
     match_points: float | None = None
     completed_matches: int
     completed_wins: int
