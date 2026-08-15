@@ -410,6 +410,40 @@ def generate_ai_team(
     return snapshots
 
 
+def save_last_battle_summary(
+    db: Session,
+    trainer_id: int,
+    status: str,
+    matches: int,
+    wins: int,
+    points: float,
+):
+    """
+    Save the summary of the trainer's most recently
+    completed or abandoned battle.
+    """
+
+    trainer = (
+        db.query(User)
+        .filter(
+            User.id == trainer_id
+        )
+        .first()
+    )
+
+    if trainer is None:
+        raise ValueError(
+            "Trainer not found."
+        )
+
+    trainer.last_battle_summary = {
+        "status": status,
+        "matches": matches,
+        "wins": wins,
+        "points": points,
+    }
+
+
 def complete_match(
     db: Session,
     battle: Battle,
@@ -497,8 +531,18 @@ def complete_match(
     if battle.completed_matches < 6:
         battle.current_match += 1
         battle.status = "match_preparation"
+
     else:
         battle.status = "battle_complete"
+
+        save_last_battle_summary(
+            db=db,
+            trainer_id=battle.trainer_id,
+            status="completed",
+            matches=battle.completed_matches,
+            wins=battle.completed_wins,
+            points=battle.completed_points,
+        )
 
     battle.current_match_state = state
 
@@ -869,6 +913,16 @@ def exit_battle(
 
     # Mark the battle as abandoned.
     battle.status = "abandoned"
+
+    save_last_battle_summary(
+        db=db,
+        trainer_id=trainer_id,
+        status="abandoned",
+        matches=completed_matches,
+        wins=completed_wins,
+        points=completed_points,
+    )
+
     battle.updated_at = datetime.now(timezone.utc)
 
     # Calculate the trainer's current leaderboard rank.

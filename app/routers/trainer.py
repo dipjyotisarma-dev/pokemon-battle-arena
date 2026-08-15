@@ -61,6 +61,7 @@ def get_trainer_dashboard(
                 wins=leaderboard.wins,
                 points=leaderboard.points,
                 rank=rank,
+                last_battle=user.last_battle_summary,
             )
 
     raise HTTPException(

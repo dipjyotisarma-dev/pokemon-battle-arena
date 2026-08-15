@@ -20,6 +20,17 @@ class UserResponse(BaseModel):
     )
 
 
+class LastBattleSummaryResponse(BaseModel):
+    """
+    Summary of the trainer's most recently completed
+    or abandoned battle.
+    """
+    status: str
+    matches: int
+    wins: int
+    points: float
+
+
 class TrainerDashboardResponse(BaseModel):
     """
     Statistics displayed on the trainer dashboard.
@@ -29,6 +40,7 @@ class TrainerDashboardResponse(BaseModel):
     wins: int
     points: float
     rank: int
+    last_battle: LastBattleSummaryResponse | None = None
 
     model_config = ConfigDict(
         from_attributes=True
