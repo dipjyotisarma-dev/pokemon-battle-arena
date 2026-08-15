@@ -52,7 +52,7 @@ class BattleMatchStartResponse(BaseModel):
     status: str
     current_match: int
     opponent_pokemon: BattlePokemonResponse
-    available_trainer_slots: list[int]
+    available_trainer_pokemon: list[BattlePokemonResponse]
 
 
 class BattlePokemonSelectionRequest(BaseModel):

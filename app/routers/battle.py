@@ -125,8 +125,8 @@ def start_current_match(
         for match in (battle.match_history or [])
     ]
 
-    available_trainer_slots = [
-        pokemon["slot"]
+    available_trainer_pokemon = [
+        pokemon
         for pokemon in battle.trainer_team
         if pokemon["slot"] not in used_trainer_slots
     ]
@@ -136,7 +136,7 @@ def start_current_match(
         status=battle.status,
         current_match=battle.current_match,
         opponent_pokemon=match_state["opponent_pokemon"],
-        available_trainer_slots=available_trainer_slots,
+        available_trainer_pokemon=available_trainer_pokemon,
     )
 
 
