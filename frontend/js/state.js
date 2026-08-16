@@ -3,10 +3,11 @@
 // ==========================================================
 
 const APP = {
-  currentUser: null,      // reference into TRAINERS array
-  page: "home",           // home | dashboard | leaderboard | battle
-  dashboardSection: "dashboard", // dashboard | create-team | edit-team | pokedex
-  battle: null            // active battle object, see battle.js
+  currentUser: null,
+  accessToken: null,
+  page: "home",
+  dashboardSection: "dashboard",
+  battle: null
 };
 
 function isLoggedIn() {

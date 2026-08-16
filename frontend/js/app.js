@@ -124,39 +124,152 @@ function renderRulesTabContent(tab) {
 
 function renderRegisterModal() {
   const modal = el("div", { class: "modal" });
-  modal.appendChild(el("div", { class: "modal-header" }, el("h3", {}, "Register Trainer"), el("button", { class: "modal-close", onclick: closeModal }, "×")));
 
-  const uField = el("input", { placeholder: "e.g. Ash" });
-  const eField = el("input", { placeholder: "you@example.com" });
-  const pField = el("input", { type: "password", placeholder: "Choose a password" });
-  const err = el("div", { class: "form-error", style: "display:none" });
-  const success = el("div", { class: "form-success", style: "display:none" });
+  modal.appendChild(
+    el(
+      "div",
+      { class: "modal-header" },
+      el("h3", {}, "Register Trainer"),
+      el("button", { class: "modal-close", onclick: closeModal }, "×")
+    )
+  );
 
-  modal.appendChild(el("div", { class: "field" }, el("label", {}, "Username"), uField));
-  modal.appendChild(el("div", { class: "field" }, el("label", {}, "Email"), eField));
-  modal.appendChild(el("div", { class: "field" }, el("label", {}, "Password"), pField));
+  const uField = el("input", {
+    placeholder: "e.g. Ash"
+  });
+
+  const eField = el("input", {
+    placeholder: "you@example.com"
+  });
+
+  const pField = el("input", {
+    type: "password",
+    placeholder: "Choose a password"
+  });
+
+  const err = el("div", {
+    class: "form-error",
+    style: "display:none"
+  });
+
+  const success = el("div", {
+    class: "form-success",
+    style: "display:none"
+  });
+
+  modal.appendChild(
+    el(
+      "div",
+      { class: "field" },
+      el("label", {}, "Username"),
+      uField
+    )
+  );
+
+  modal.appendChild(
+    el(
+      "div",
+      { class: "field" },
+      el("label", {}, "Email"),
+      eField
+    )
+  );
+
+  modal.appendChild(
+    el(
+      "div",
+      { class: "field" },
+      el("label", {}, "Password"),
+      pField
+    )
+  );
+
   modal.appendChild(err);
   modal.appendChild(success);
 
-  modal.appendChild(el("div", { style: "margin-top:14px;display:flex;gap:10px;" },
-    el("button", { class: "btn btn-primary", onclick: () => {
-      err.style.display = "none"; success.style.display = "none";
-      const username = uField.value.trim();
-      const email = eField.value.trim();
-      const password = pField.value;
-      if (!username) { err.textContent = "Username is required."; err.style.display = "block"; return; }
-      if (!email || !validEmail(email)) { err.textContent = "Please enter a valid email."; err.style.display = "block"; return; }
-      if (!password) { err.textContent = "Password is required."; err.style.display = "block"; return; }
-      if (TRAINERS.some(t => t.username.toLowerCase() === username.toLowerCase())) {
-        err.textContent = "That username is already taken."; err.style.display = "block"; return;
-      }
-      TRAINERS.push({ username, email, password, totalMatches: 0, wins: 0, points: 0, team: null, lastBattle: null });
-      success.textContent = "Registration successful! You can now enter the arena.";
-      success.style.display = "block";
-      uField.value = ""; eField.value = ""; pField.value = "";
-    } }, "Register"),
-    el("button", { class: "btn btn-ghost", onclick: closeModal }, "Cancel")
-  ));
+  modal.appendChild(
+    el(
+      "div",
+      {
+        style: "margin-top:14px;display:flex;gap:10px;"
+      },
+
+      el(
+        "button",
+        {
+          class: "btn btn-primary",
+
+          onclick: async () => {
+            err.style.display = "none";
+            success.style.display = "none";
+
+            const username = uField.value.trim();
+            const email = eField.value.trim();
+            const password = pField.value;
+
+            // -------------------------
+            // Frontend validation
+            // -------------------------
+
+            if (!username) {
+              err.textContent = "Username is required.";
+              err.style.display = "block";
+              return;
+            }
+
+            if (!email || !validEmail(email)) {
+              err.textContent = "Please enter a valid email.";
+              err.style.display = "block";
+              return;
+            }
+
+            if (!password) {
+              err.textContent = "Password is required.";
+              err.style.display = "block";
+              return;
+            }
+
+            // -------------------------
+            // Send registration request
+            // to FastAPI
+            // -------------------------
+
+            try {
+              await API.register(
+                username,
+                email,
+                password
+              );
+
+              success.textContent =
+                "Registration successful! You can now enter the arena.";
+
+              success.style.display = "block";
+
+              uField.value = "";
+              eField.value = "";
+              pField.value = "";
+
+            } catch (error) {
+              err.textContent = error.message;
+              err.style.display = "block";
+            }
+          }
+        },
+        "Register"
+      ),
+
+      el(
+        "button",
+        {
+          class: "btn btn-ghost",
+          onclick: closeModal
+        },
+        "Cancel"
+      )
+    )
+  );
+
   return modal;
 }
 
