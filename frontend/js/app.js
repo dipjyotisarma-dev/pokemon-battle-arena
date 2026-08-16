@@ -275,34 +275,145 @@ function renderRegisterModal() {
 
 function renderLoginModal() {
   const modal = el("div", { class: "modal" });
-  modal.appendChild(el("div", { class: "modal-header" }, el("h3", {}, "Enter Arena"), el("button", { class: "modal-close", onclick: closeModal }, "×")));
 
-  const idField = el("input", { placeholder: "Username or email" });
-  const pField = el("input", { type: "password", placeholder: "Password" });
-  const err = el("div", { class: "form-error", style: "display:none" });
+  modal.appendChild(
+    el(
+      "div",
+      { class: "modal-header" },
+      el("h3", {}, "Enter Arena"),
+      el("button", {
+        class: "modal-close",
+        onclick: closeModal
+      }, "×")
+    )
+  );
 
-  modal.appendChild(el("div", { class: "field" }, el("label", {}, "Username or Email"), idField));
-  modal.appendChild(el("div", { class: "field" }, el("label", {}, "Password"), pField));
+  const idField = el("input", {
+    placeholder: "Your username"
+  });
+
+  const pField = el("input", {
+    type: "password",
+    placeholder: "Password"
+  });
+
+  const err = el("div", {
+    class: "form-error",
+    style: "display:none"
+  });
+
+  modal.appendChild(
+    el(
+      "div",
+      { class: "field" },
+      el("label", {}, "Username"),
+      idField
+    )
+  );
+
+  modal.appendChild(
+    el(
+      "div",
+      { class: "field" },
+      el("label", {}, "Password"),
+      pField
+    )
+  );
+
   modal.appendChild(err);
 
-  modal.appendChild(el("div", { style: "margin-top:14px;display:flex;gap:10px;" },
-    el("button", { class: "btn btn-primary", onclick: () => {
-      const id = idField.value.trim().toLowerCase();
-      const pass = pField.value;
-      const trainer = TRAINERS.find(t => (t.username.toLowerCase() === id || t.email.toLowerCase() === id) && t.password === pass);
-      if (!trainer) {
-        err.textContent = "Invalid username/email or password.";
-        err.style.display = "block";
-        return;
-      }
-      APP.currentUser = trainer;
-      APP.page = "dashboard";
-      APP.dashboardSection = "dashboard";
-      Modal.current = null;
-      render();
-    } }, "Enter Arena"),
-    el("button", { class: "btn btn-ghost", onclick: closeModal }, "Cancel")
-  ));
+  modal.appendChild(
+    el(
+      "div",
+      {
+        style: "margin-top:14px;display:flex;gap:10px;"
+      },
+
+      el(
+        "button",
+        {
+          class: "btn btn-primary",
+
+          onclick: async () => {
+            err.style.display = "none";
+
+            const username = idField.value.trim();
+            const password = pField.value;
+
+            // -------------------------
+            // Frontend validation
+            // -------------------------
+
+            if (!username) {
+              err.textContent = "Username is required.";
+              err.style.display = "block";
+              return;
+            }
+
+            if (!password) {
+              err.textContent = "Password is required.";
+              err.style.display = "block";
+              return;
+            }
+
+            // -------------------------
+            // Login through FastAPI
+            // -------------------------
+
+            try {
+              const loginData = await API.login(
+                username,
+                password
+              );
+
+              const token = loginData.access_token;
+
+              // -------------------------
+              // Get authenticated user
+              // -------------------------
+
+              const user = await API.getCurrentUser(
+                token
+              );
+
+              // -------------------------
+              // Store authentication state
+              // -------------------------
+
+              APP.accessToken = token;
+              APP.currentUser = user;
+
+              // -------------------------
+              // Go to dashboard
+              // -------------------------
+
+              APP.page = "dashboard";
+              APP.dashboardSection = "dashboard";
+
+              Modal.current = null;
+
+              render();
+
+            } catch (error) {
+              err.textContent = error.message;
+              err.style.display = "block";
+            }
+          }
+        },
+        "Enter Arena"
+      ),
+
+      el(
+        "button",
+        {
+          class: "btn btn-ghost",
+          onclick: closeModal
+        },
+        "Cancel"
+      )
+    )
+  );
+
   return modal;
 }
 
