@@ -28,6 +28,7 @@ const API = {
     return data;
   },
 
+
   async login(username, password) {
     const body = new URLSearchParams();
 
@@ -51,6 +52,7 @@ const API = {
     return data;
   },
 
+
   async getCurrentUser(token) {
     const response = await fetch(`${API_BASE_URL}/auth/me`, {
       method: "GET",
@@ -63,6 +65,24 @@ const API = {
 
     if (!response.ok) {
       throw new Error(data.detail || "Could not retrieve current user.");
+    }
+
+    return data;
+  },
+
+
+  async getDashboard(token) {
+    const response = await fetch(`${API_BASE_URL}/trainer/dashboard`, {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`
+      }
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.detail || "Could not retrieve dashboard.");
     }
 
     return data;

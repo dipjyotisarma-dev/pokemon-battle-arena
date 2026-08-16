@@ -169,54 +169,420 @@ function renderDashboard() {
 }
 
 function renderDashboardHome() {
-  const t = APP.currentUser;
-  const rank = getTrainerRank(t.username);
-  const container = el("div", {});
-  container.appendChild(el("h2", {}, `Welcome back, ${t.username.charAt(0).toUpperCase() + t.username.slice(1)}`));
 
-  const statGrid = el("div", { class: "stat-grid" },
-    el("div", { class: "stat-card" }, el("div", { class: "label" }, "Rank"), el("div", { class: "value" }, `#${rank}`)),
-    el("div", { class: "stat-card" }, el("div", { class: "label" }, "Total Matches"), el("div", { class: "value" }, String(t.totalMatches))),
-    el("div", { class: "stat-card" }, el("div", { class: "label" }, "Wins"), el("div", { class: "value" }, String(t.wins))),
-    el("div", { class: "stat-card" }, el("div", { class: "label" }, "Points"), el("div", { class: "value" }, t.points.toFixed(2)))
-  );
-  container.appendChild(statGrid);
+  // ----------------------------------------------------------
+  // If dashboard data has not been loaded yet,
+  // show a loading message and request it from the backend.
+  // ----------------------------------------------------------
 
-  container.appendChild(el("div", { class: "section-title" }, "Last Battle"));
-  if (t.lastBattle) {
-    const lb = t.lastBattle;
-    container.appendChild(el("div", { class: "card" },
-      el("span", { class: `status-pill ${lb.status}` }, lb.status),
-      el("div", { class: "last-battle-card" },
-        el("div", {}, el("div", { class: "label" }, "Matches"), el("div", { class: "value" }, String(lb.matches))),
-        el("div", {}, el("div", { class: "label" }, "Wins"), el("div", { class: "value" }, String(lb.wins))),
-        el("div", {}, el("div", { class: "label" }, "Points"), el("div", { class: "value" }, lb.points.toFixed(2)))
+  if (
+    !APP.dashboardData ||
+    APP.dashboardData.username !== APP.currentUser.username
+  ) {
+
+    const container = el("div", {});
+
+    container.appendChild(
+      el(
+        "div",
+        { class: "card" },
+        el("p", {}, "Loading dashboard...")
       )
-    ));
-  } else {
-    container.appendChild(el("div", { class: "card" }, el("p", {}, "No battles played yet.")));
+    );
+
+    API.getDashboard(APP.accessToken)
+      .then((data) => {
+
+        APP.dashboardData = data;
+
+        render();
+
+      })
+      .catch((error) => {
+
+        APP.dashboardData = {
+          username: APP.currentUser.username,
+          error: error.message
+        };
+
+        render();
+
+      });
+
+    return container;
   }
 
-  container.appendChild(el("div", { class: "section-title" }, "Your Team"));
-  if (t.team) {
-    const grid = el("div", { class: "team-grid-preview" });
-    t.team.forEach(entry => {
-      grid.appendChild(el("div", { class: "mini-pokemon-card" },
-        el("img", { src: entry.pokemon.image, alt: entry.pokemon.displayName }),
-        el("div", { class: "name" }, entry.pokemon.displayName),
-        el("div", { class: "types" }, typeBadge(entry.pokemon.type1), entry.pokemon.type2 ? typeBadge(entry.pokemon.type2) : null)
-      ));
-    });
-    container.appendChild(grid);
-    container.appendChild(el("div", { style: "margin-top:18px;display:flex;gap:10px;" },
-      el("button", { class: "btn", onclick: () => { openTeamBuilder(t.team); APP.dashboardSection = "edit-team"; render(); } }, "Edit Team"),
-      el("button", { class: "btn btn-primary", onclick: () => startBattle(t) }, "Start Battle")
-    ));
+
+  // ----------------------------------------------------------
+  // Backend dashboard data is now available.
+  // ----------------------------------------------------------
+
+  const dashboard = APP.dashboardData;
+
+  const container = el("div", {});
+
+
+  // ----------------------------------------------------------
+  // Dashboard heading
+  // ----------------------------------------------------------
+
+  container.appendChild(
+    el(
+      "h2",
+      {},
+      `Welcome back, ${
+        dashboard.username.charAt(0).toUpperCase() +
+        dashboard.username.slice(1)
+      }`
+    )
+  );
+
+
+  // ----------------------------------------------------------
+  // Handle dashboard API error
+  // ----------------------------------------------------------
+
+  if (dashboard.error) {
+
+    container.appendChild(
+      el(
+        "div",
+        { class: "card" },
+
+        el(
+          "p",
+          {},
+          `Could not load dashboard: ${dashboard.error}`
+        ),
+
+        el(
+          "button",
+          {
+            class: "btn btn-primary",
+            style: "margin-top:14px;",
+
+            onclick: () => {
+              APP.dashboardData = null;
+              render();
+            }
+          },
+          "Retry"
+        )
+      )
+    );
+
+    return container;
+  }
+
+
+  // ----------------------------------------------------------
+  // Statistics
+  // ----------------------------------------------------------
+
+  const statGrid = el(
+    "div",
+    { class: "stat-grid" },
+
+    el(
+      "div",
+      { class: "stat-card" },
+
+      el(
+        "div",
+        { class: "label" },
+        "Rank"
+      ),
+
+      el(
+        "div",
+        { class: "value" },
+        `#${dashboard.rank}`
+      )
+    ),
+
+    el(
+      "div",
+      { class: "stat-card" },
+
+      el(
+        "div",
+        { class: "label" },
+        "Total Matches"
+      ),
+
+      el(
+        "div",
+        { class: "value" },
+        String(dashboard.total_matches)
+      )
+    ),
+
+    el(
+      "div",
+      { class: "stat-card" },
+
+      el(
+        "div",
+        { class: "label" },
+        "Wins"
+      ),
+
+      el(
+        "div",
+        { class: "value" },
+        String(dashboard.wins)
+      )
+    ),
+
+    el(
+      "div",
+      { class: "stat-card" },
+
+      el(
+        "div",
+        { class: "label" },
+        "Points"
+      ),
+
+      el(
+        "div",
+        { class: "value" },
+        Number(dashboard.points).toFixed(2)
+      )
+    )
+  );
+
+  container.appendChild(statGrid);
+
+
+  // ----------------------------------------------------------
+  // Last Battle
+  // ----------------------------------------------------------
+
+  container.appendChild(
+    el(
+      "div",
+      { class: "section-title" },
+      "Last Battle"
+    )
+  );
+
+
+  if (dashboard.last_battle) {
+
+    const lastBattle = dashboard.last_battle;
+
+    container.appendChild(
+      el(
+        "div",
+        { class: "card" },
+
+        el(
+          "span",
+          {
+            class: `status-pill ${lastBattle.status}`
+          },
+          lastBattle.status
+        ),
+
+        el(
+          "div",
+          { class: "last-battle-card" },
+
+          el(
+            "div",
+            {},
+
+            el(
+              "div",
+              { class: "label" },
+              "Matches"
+            ),
+
+            el(
+              "div",
+              { class: "value" },
+              String(lastBattle.matches)
+            )
+          ),
+
+          el(
+            "div",
+            {},
+
+            el(
+              "div",
+              { class: "label" },
+              "Wins"
+            ),
+
+            el(
+              "div",
+              { class: "value" },
+              String(lastBattle.wins)
+            )
+          ),
+
+          el(
+            "div",
+            {},
+
+            el(
+              "div",
+              { class: "label" },
+              "Points"
+            ),
+
+            el(
+              "div",
+              { class: "value" },
+              Number(lastBattle.points).toFixed(2)
+            )
+          )
+        )
+      )
+    );
+
   } else {
-    container.appendChild(el("div", { class: "card" },
-      el("p", {}, "You don't have a team yet."),
-      el("button", { class: "btn btn-primary", style: "margin-top:14px;", onclick: () => { openTeamBuilder(null); APP.dashboardSection = "create-team"; render(); } }, "Create Team")
-    ));
+
+    container.appendChild(
+      el(
+        "div",
+        { class: "card" },
+        el(
+          "p",
+          {},
+          "No battles played yet."
+        )
+      )
+    );
+  }
+
+  // ----------------------------------------------------------
+  // Team section
+  //
+  // Team integration will be handled separately.
+  // For now we leave the existing frontend team behaviour.
+  // ----------------------------------------------------------
+
+  container.appendChild(
+    el(
+      "div",
+      { class: "section-title" },
+      "Your Team"
+    )
+  );
+
+  const team = APP.currentUser.team;
+
+
+  if (team) {
+
+    const grid = el(
+      "div",
+      { class: "team-grid-preview" }
+    );
+
+    team.forEach((entry) => {
+
+      grid.appendChild(
+        el(
+          "div",
+          { class: "mini-pokemon-card" },
+
+          el(
+            "img",
+            {
+              src: entry.pokemon.image,
+              alt: entry.pokemon.displayName
+            }
+          ),
+
+          el(
+            "div",
+            { class: "name" },
+            entry.pokemon.displayName
+          ),
+
+          el(
+            "div",
+            { class: "types" },
+
+            typeBadge(entry.pokemon.type1),
+
+            entry.pokemon.type2
+              ? typeBadge(entry.pokemon.type2)
+              : null
+          )
+        )
+      );
+
+    });
+
+    container.appendChild(grid);
+
+    container.appendChild(
+      el(
+        "div",
+        {
+          style: "margin-top:18px;display:flex;gap:10px;"
+        },
+
+        el(
+          "button",
+          {
+            class: "btn",
+
+            onclick: () => {
+              openTeamBuilder(team);
+              APP.dashboardSection = "edit-team";
+              render();
+            }
+          },
+          "Edit Team"
+        ),
+
+        el(
+          "button",
+          {
+            class: "btn btn-primary",
+
+            onclick: () => startBattle(APP.currentUser)
+          },
+          "Start Battle"
+        )
+      )
+    );
+
+  } else {
+
+    container.appendChild(
+      el(
+        "div",
+        { class: "card" },
+
+        el(
+          "p",
+          {},
+          "You don't have a team yet."
+        ),
+
+        el(
+          "button",
+          {
+            class: "btn btn-primary",
+            style: "margin-top:14px;",
+
+            onclick: () => {
+              openTeamBuilder(null);
+              APP.dashboardSection = "create-team";
+              render();
+            }
+          },
+          "Create Team"
+        )
+      )
+    );
   }
 
   return container;
