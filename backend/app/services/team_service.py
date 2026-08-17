@@ -9,6 +9,8 @@ from app.schemas.team import (
     TeamCreate,
     TeamResponse,
     TeamSlotResponse,
+    TeamMoveResponse,
+    TeamPokemonResponse
 )
 
 SPECIAL_CATEGORIES = {
@@ -306,23 +308,67 @@ def build_team_response(
     """
     Convert TrainerTeam ORM objects into
     the TeamResponse schema.
-    """
 
+    The response contains both the original
+    IDs and the complete Pokémon and move data
+    required by the frontend.
+    """
     slots = []
+
     for team_object in sorted(
         team_objects,
         key=lambda team: team.slot,
     ):
 
+        pokemon = team_object.pokemon
+
+        moves = [
+            team_object.move1,
+            team_object.move2,
+            team_object.move3,
+            team_object.move4,
+        ]
+
         slots.append(
             TeamSlotResponse(
                 slot=team_object.slot,
+
                 pokemon_id=team_object.pokemon_id,
+
                 move_ids=[
                     team_object.move1_id,
                     team_object.move2_id,
                     team_object.move3_id,
                     team_object.move4_id,
+                ],
+
+                pokemon=TeamPokemonResponse(
+                    id=pokemon.id,
+                    name=pokemon.name,
+                    display_name=pokemon.display_name,
+                    type1=pokemon.type1,
+                    type2=pokemon.type2,
+                    hp=pokemon.hp,
+                    attack=pokemon.attack,
+                    defense=pokemon.defense,
+                    special_attack=pokemon.special_attack,
+                    special_defense=pokemon.special_defense,
+                    speed=pokemon.speed,
+                    bst=pokemon.bst,
+                    image=pokemon.image,
+                    pokemon_category=pokemon.pokemon_category,
+                ),
+
+                moves=[
+                    TeamMoveResponse(
+                        id=move.id,
+                        move_name=move.move_name,
+                        display_name=move.display_name,
+                        move_type=move.move_type,
+                        category=move.category,
+                        base_power=move.base_power,
+                    )
+                    for move in moves
                 ],
             )
         )
