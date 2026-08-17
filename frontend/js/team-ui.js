@@ -80,29 +80,361 @@ function refreshPickerList() {
 }
 
 function populatePickerList(list, idx) {
+
+  // ----------------------------------------------------------
+  // Clear the existing picker list
+  // ----------------------------------------------------------
+
   list.innerHTML = "";
+
+  // ----------------------------------------------------------
+  // Get the current search text
+  // ----------------------------------------------------------
+
   const q = TeamBuilder.pickerSearch.toLowerCase();
-  POKEMON.filter(p => p.displayName.toLowerCase().includes(q)).forEach(p => {
-    const dup = teamHasDuplicate(TeamBuilder.slots, idx, p.id);
-    const restrictedConflict = teamHasRestrictedConflict(TeamBuilder.slots, idx, p);
-    const disabled = dup || restrictedConflict;
-    const row = el("div", { class: `picker-row ${disabled ? "disabled" : ""}` },
-      el("img", { src: p.image, alt: p.displayName }),
-      el("div", { class: "picker-name" }, p.displayName,
-        el("div", { style: "font-size:11px;color:var(--text-faint);margin-top:2px;" }, `BST ${p.bst} · ${categoryTag(p.category)}`)),
-      typeBadge(p.type1), p.type2 ? typeBadge(p.type2) : null
-    );
-    if (!disabled) {
-      row.addEventListener("click", () => {
-        TeamBuilder.pendingPokemon = p;
-        TeamBuilder.pendingMoves = [];
-        TeamBuilder.activeSlotIndex = idx;
-        Modal.current = "moves";
-        render();
-      });
-    }
-    list.appendChild(row);
-  });
+
+  // ----------------------------------------------------------
+  // Filter the existing frontend Pokémon list.
+  //
+  // We are keeping the existing UI list for now.
+  // The actual Pokémon ID and moves will come from
+  // the backend when the trainer selects one.
+  // ----------------------------------------------------------
+
+  POKEMON
+    .filter((pokemon) =>
+      pokemon.displayName
+        .toLowerCase()
+        .includes(q)
+    )
+    .forEach((pokemon) => {
+
+      // ------------------------------------------------------
+      // Check duplicate Pokémon rule
+      // ------------------------------------------------------
+
+      const dup = teamHasDuplicate(
+        TeamBuilder.slots,
+        idx,
+        pokemon.id
+      );
+
+
+      // ------------------------------------------------------
+      // Check Legendary / Mythical / Ultra Beast rule
+      // ------------------------------------------------------
+
+      const restrictedConflict =
+        teamHasRestrictedConflict(
+          TeamBuilder.slots,
+          idx,
+          pokemon
+        );
+
+
+      const disabled =
+        dup || restrictedConflict;
+
+
+      // ------------------------------------------------------
+      // Create picker row
+      // ------------------------------------------------------
+
+      const row = el(
+        "div",
+        {
+          class: `picker-row ${
+            disabled ? "disabled" : ""
+          }`
+        },
+
+        el(
+          "img",
+          {
+            src: pokemon.image,
+            alt: pokemon.displayName
+          }
+        ),
+
+        el(
+          "div",
+          { class: "picker-name" },
+
+          pokemon.displayName,
+
+          el(
+            "div",
+            {
+              style:
+                "font-size:11px;" +
+                "color:var(--text-faint);" +
+                "margin-top:2px;"
+            },
+
+            `BST ${pokemon.bst} · ${
+              categoryTag(pokemon.category)
+            }`
+          )
+        ),
+
+        typeBadge(pokemon.type1),
+
+        pokemon.type2
+          ? typeBadge(pokemon.type2)
+          : null
+      );
+
+
+      // ------------------------------------------------------
+      // Do not allow invalid selections
+      // ------------------------------------------------------
+
+      if (disabled) {
+        list.appendChild(row);
+        return;
+      }
+
+
+      // ------------------------------------------------------
+      // Pokémon selection
+      //
+      // The frontend Pokémon object is NOT saved directly.
+      // We first retrieve the real Pokémon from the backend.
+      // ------------------------------------------------------
+
+      row.addEventListener(
+        "click",
+        async () => {
+
+          // --------------------------------------------------
+          // Prevent repeated clicks while loading
+          // --------------------------------------------------
+
+          row.style.pointerEvents = "none";
+          row.style.opacity = "0.6";
+
+
+          try {
+
+            // ------------------------------------------------
+            // Find the Pokémon using its real backend data.
+            //
+            // We search by name because the frontend demo
+            // ID is not necessarily the real Pokédex ID.
+            // ------------------------------------------------
+
+            const searchResults =
+              await API.searchPokemon(
+                pokemon.displayName
+              );
+
+
+            if (
+              !searchResults ||
+              searchResults.length === 0
+            ) {
+              throw new Error(
+                `Could not find ${pokemon.displayName} in the backend.`
+              );
+            }
+
+
+            // ------------------------------------------------
+            // Use the first exact-name match.
+            // ------------------------------------------------
+
+            const backendSearchResult =
+              searchResults.find(
+                (result) =>
+                  result.display_name.toLowerCase() ===
+                  pokemon.displayName.toLowerCase()
+              ) || searchResults[0];
+
+
+            // ------------------------------------------------
+            // Get complete Pokémon information using the
+            // REAL backend Pokédex ID.
+            // ------------------------------------------------
+
+            const backendPokemon =
+              await API.getPokemon(
+                backendSearchResult.id
+              );
+
+
+            // ------------------------------------------------
+            // Get all moves this Pokémon can actually learn.
+            // ------------------------------------------------
+
+            const backendMoves =
+              await API.getPokemonMoves(
+                backendPokemon.id
+              );
+
+
+            if (
+              !backendMoves ||
+              backendMoves.length < 4
+            ) {
+              throw new Error(
+                `${backendPokemon.display_name} does not have enough available moves.`
+              );
+            }
+
+
+            // ------------------------------------------------
+            // Convert backend Pokémon into the structure
+            // already expected by the frontend team builder.
+            // ------------------------------------------------
+
+            const frontendPokemon = {
+
+              id: backendPokemon.id,
+
+              name: backendPokemon.name,
+
+              displayName:
+                backendPokemon.display_name,
+
+
+              type1:
+                backendPokemon.type1,
+
+              type2:
+                backendPokemon.type2,
+
+
+              hp:
+                backendPokemon.hp,
+
+              attack:
+                backendPokemon.attack,
+
+              defense:
+                backendPokemon.defense,
+
+              specialAttack:
+                backendPokemon.special_attack,
+
+              specialDefense:
+                backendPokemon.special_defense,
+
+              speed:
+                backendPokemon.speed,
+
+
+              bst:
+                backendPokemon.bst,
+
+
+              category:
+                backendPokemon.pokemon_category,
+
+
+              // ----------------------------------------------
+              // Use the local frontend image.
+              // ----------------------------------------------
+
+              image:
+                `assets/images/pokemon/${backendPokemon.image}`,
+
+
+              // ----------------------------------------------
+              // Convert backend moves to the structure
+              // expected by renderMoveModal().
+              // ----------------------------------------------
+
+              moves:
+                backendMoves.map((move) => ({
+                  id:
+                    String(move.id),
+
+                  name:
+                    move.move_name,
+
+                  displayName:
+                    move.display_name,
+
+                  type:
+                    move.move_type,
+
+                  category:
+                    move.category,
+
+                  basePower:
+                    move.base_power
+                }))
+            };
+
+
+            // ------------------------------------------------
+            // Store the real backend Pokémon.
+            // ------------------------------------------------
+
+            TeamBuilder.pendingPokemon =
+              frontendPokemon;
+
+
+            // ------------------------------------------------
+            // Reset move selection for this Pokémon.
+            // ------------------------------------------------
+
+            TeamBuilder.pendingMoves = [];
+
+
+            // ------------------------------------------------
+            // Keep the current slot.
+            // ------------------------------------------------
+
+            TeamBuilder.activeSlotIndex = idx;
+
+
+            // ------------------------------------------------
+            // Move to the existing move-selection modal.
+            // ------------------------------------------------
+
+            Modal.current = "moves";
+
+            render();
+
+          } catch (error) {
+
+            // ------------------------------------------------
+            // Restore the row if loading failed.
+            // ------------------------------------------------
+
+            row.style.pointerEvents = "";
+            row.style.opacity = "";
+
+
+            console.error(
+              "Failed to load Pokémon:",
+              error
+            );
+
+
+            // ------------------------------------------------
+            // Show a simple error without changing the
+            // existing modal architecture.
+            // ------------------------------------------------
+
+            row.classList.add("disabled");
+
+            row.title =
+              error.message ||
+              "Could not load Pokémon data.";
+          }
+        }
+      );
+
+
+      // ------------------------------------------------------
+      // Add row to picker
+      // ------------------------------------------------------
+
+      list.appendChild(row);
+
+    });
 }
 
 function renderMoveModal() {
