@@ -171,8 +171,10 @@ function renderDashboard() {
 function renderDashboardHome() {
 
   // ----------------------------------------------------------
-  // If dashboard data has not been loaded yet,
-  // show a loading message and request it from the backend.
+  // Load dashboard data first.
+  //
+  // The dashboard itself must work whether or not the
+  // trainer has a team.
   // ----------------------------------------------------------
 
   if (
@@ -190,15 +192,110 @@ function renderDashboardHome() {
       )
     );
 
-    API.getDashboard(APP.accessToken)
-      .then((data) => {
+    // --------------------------------------------------------
+    // Load trainer dashboard
+    // --------------------------------------------------------
 
-        APP.dashboardData = data;
+    API.getDashboard(APP.accessToken)
+      .then((dashboardData) => {
+
+        APP.dashboardData = dashboardData;
+
+        // ----------------------------------------------------
+        // Load trainer team separately.
+        //
+        // A trainer not having a team is NOT an error.
+        // ----------------------------------------------------
+
+        return API.getTeam(APP.accessToken)
+          .then((teamData) => {
+
+            // ------------------------------------------------
+            // Convert backend team format into the format
+            // already expected by the frontend.
+            // ------------------------------------------------
+
+            APP.currentUser.team = teamData.slots.map((slot) => {
+
+              const pokemon = {
+                id: slot.pokemon.id,
+                name: slot.pokemon.name,
+                displayName: slot.pokemon.display_name,
+
+                type1: slot.pokemon.type1,
+                type2: slot.pokemon.type2,
+
+                hp: slot.pokemon.hp,
+                attack: slot.pokemon.attack,
+                defense: slot.pokemon.defense,
+
+                specialAttack: slot.pokemon.special_attack,
+                specialDefense: slot.pokemon.special_defense,
+
+                speed: slot.pokemon.speed,
+
+                bst: slot.pokemon.bst,
+
+                category: slot.pokemon.pokemon_category,
+
+                image: `assets/images/pokemon/${slot.pokemon.image}`,
+
+                moves: slot.moves.map((move) => ({
+                  id: String(move.id),
+                  name: move.move_name,
+                  displayName: move.display_name,
+                  type: move.move_type,
+                  category: move.category,
+                  basePower: move.base_power
+                }))
+              };
+
+              const selectedMoves = slot.moves.map((move) => ({
+                id: String(move.id),
+                name: move.move_name,
+                displayName: move.display_name,
+                type: move.move_type,
+                category: move.category,
+                basePower: move.base_power
+              }));
+
+              return {
+                pokemon: pokemon,
+                moves: selectedMoves
+              };
+            });
+
+          })
+          .catch((error) => {
+
+            // ------------------------------------------------
+            // No team is NOT a dashboard error.
+            //
+            // /team returns an error when the trainer hasn't
+            // created a team yet. In that situation we simply
+            // set the team to null and continue rendering
+            // the dashboard normally.
+            // ------------------------------------------------
+
+            APP.currentUser.team = null;
+
+          });
+
+      })
+      .then(() => {
+
+        // ----------------------------------------------------
+        // Dashboard and team loading are complete.
+        // ----------------------------------------------------
 
         render();
 
       })
       .catch((error) => {
+
+        // ----------------------------------------------------
+        // Only an actual dashboard failure reaches here.
+        // ----------------------------------------------------
 
         APP.dashboardData = {
           username: APP.currentUser.username,
@@ -214,7 +311,7 @@ function renderDashboardHome() {
 
 
   // ----------------------------------------------------------
-  // Backend dashboard data is now available.
+  // Backend dashboard data
   // ----------------------------------------------------------
 
   const dashboard = APP.dashboardData;
@@ -239,7 +336,7 @@ function renderDashboardHome() {
 
 
   // ----------------------------------------------------------
-  // Handle dashboard API error
+  // Handle actual dashboard API error
   // ----------------------------------------------------------
 
   if (dashboard.error) {
@@ -276,7 +373,7 @@ function renderDashboardHome() {
 
 
   // ----------------------------------------------------------
-  // Statistics
+  // Main trainer statistics
   // ----------------------------------------------------------
 
   const statGrid = el(
@@ -372,10 +469,79 @@ function renderDashboardHome() {
 
     const lastBattle = dashboard.last_battle;
 
+    // --------------------------------------------------------
+    // Last battle statistics now use the SAME stat-card
+    // visual structure as the main dashboard statistics.
+    // --------------------------------------------------------
+
+    const lastBattleGrid = el(
+      "div",
+      { class: "stat-grid" },
+
+      el(
+        "div",
+        { class: "stat-card" },
+
+        el(
+          "div",
+          { class: "label" },
+          "Matches"
+        ),
+
+        el(
+          "div",
+          { class: "value" },
+          String(lastBattle.matches)
+        )
+      ),
+
+      el(
+        "div",
+        { class: "stat-card" },
+
+        el(
+          "div",
+          { class: "label" },
+          "Wins"
+        ),
+
+        el(
+          "div",
+          { class: "value" },
+          String(lastBattle.wins)
+        )
+      ),
+
+      el(
+        "div",
+        { class: "stat-card" },
+
+        el(
+          "div",
+          { class: "label" },
+          "Points"
+        ),
+
+        el(
+          "div",
+          { class: "value" },
+          Number(lastBattle.points).toFixed(2)
+        )
+      )
+    );
+
+    container.appendChild(lastBattleGrid);
+
+    // --------------------------------------------------------
+    // Battle status
+    // --------------------------------------------------------
+
     container.appendChild(
       el(
         "div",
-        { class: "card" },
+        {
+          style: "margin-top:12px;"
+        },
 
         el(
           "span",
@@ -383,62 +549,6 @@ function renderDashboardHome() {
             class: `status-pill ${lastBattle.status}`
           },
           lastBattle.status
-        ),
-
-        el(
-          "div",
-          { class: "last-battle-card" },
-
-          el(
-            "div",
-            {},
-
-            el(
-              "div",
-              { class: "label" },
-              "Matches"
-            ),
-
-            el(
-              "div",
-              { class: "value" },
-              String(lastBattle.matches)
-            )
-          ),
-
-          el(
-            "div",
-            {},
-
-            el(
-              "div",
-              { class: "label" },
-              "Wins"
-            ),
-
-            el(
-              "div",
-              { class: "value" },
-              String(lastBattle.wins)
-            )
-          ),
-
-          el(
-            "div",
-            {},
-
-            el(
-              "div",
-              { class: "label" },
-              "Points"
-            ),
-
-            el(
-              "div",
-              { class: "value" },
-              Number(lastBattle.points).toFixed(2)
-            )
-          )
         )
       )
     );
@@ -449,6 +559,7 @@ function renderDashboardHome() {
       el(
         "div",
         { class: "card" },
+
         el(
           "p",
           {},
@@ -458,11 +569,9 @@ function renderDashboardHome() {
     );
   }
 
+
   // ----------------------------------------------------------
-  // Team section
-  //
-  // Team integration will be handled separately.
-  // For now we leave the existing frontend team behaviour.
+  // Your Team
   // ----------------------------------------------------------
 
   container.appendChild(
@@ -476,7 +585,11 @@ function renderDashboardHome() {
   const team = APP.currentUser.team;
 
 
-  if (team) {
+  // ----------------------------------------------------------
+  // Trainer has a team
+  // ----------------------------------------------------------
+
+  if (team && team.length > 0) {
 
     const grid = el(
       "div",
@@ -521,6 +634,11 @@ function renderDashboardHome() {
 
     container.appendChild(grid);
 
+
+    // --------------------------------------------------------
+    // Team actions
+    // --------------------------------------------------------
+
     container.appendChild(
       el(
         "div",
@@ -555,6 +673,12 @@ function renderDashboardHome() {
     );
 
   } else {
+
+    // --------------------------------------------------------
+    // Trainer does NOT have a team.
+    //
+    // This is a normal dashboard state, NOT an error.
+    // --------------------------------------------------------
 
     container.appendChild(
       el(
