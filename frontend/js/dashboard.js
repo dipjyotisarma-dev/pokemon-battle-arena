@@ -24,6 +24,7 @@ const SECTION_TO_VIEW_ID = {
 let currentSection = 'overview';
 
 function setActiveSection(sectionName) {
+  const previousSection = currentSection;
   currentSection = sectionName;
   const viewId = SECTION_TO_VIEW_ID[sectionName];
 
@@ -37,6 +38,13 @@ function setActiveSection(sectionName) {
   document.querySelectorAll('.sidebar-link[data-section]').forEach((link) => {
     link.classList.toggle('is-active', link.getAttribute('data-section') === sectionName);
   });
+
+  // When switching to the Overview section, load live dashboard data
+  // but avoid duplicate loads if we are already on the overview.
+  if (sectionName === 'overview' && previousSection !== 'overview') {
+    // loadTrainerDashboardData gracefully handles auth/errors
+    if (typeof loadTrainerDashboardData === 'function') loadTrainerDashboardData();
+  }
 
   if (sectionName === 'create-team') renderCreateTeam();
   if (sectionName === 'edit-team') renderEditTeam();
@@ -92,23 +100,54 @@ function initLogout() {
    OVERVIEW RENDERING
    ============================================================ */
 
+// Ensure Api and Session are available when needed
+function _loadScript(src) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      existing.addEventListener('load', () => resolve());
+      existing.addEventListener('error', (e) => reject(e));
+      if (existing.readyState === 'complete' || existing.readyState === 'loaded') resolve();
+      return;
+    }
+    const s = document.createElement('script');
+    s.src = src;
+    s.async = false;
+    s.onload = () => resolve();
+    s.onerror = (e) => reject(e);
+    document.head.appendChild(s);
+  });
+}
+
+async function ensureApiLoaded() {
+  if (!window.Session) await _loadScript('/js/session.js');
+  if (!window.Api) await _loadScript('/js/api.js');
+}
+
 function renderTrainerChip(trainer) {
   const chip = document.getElementById('trainer-chip-name');
-  if (chip) chip.innerHTML = `<strong>${trainer.username}</strong>`;
+  const name = typeof trainer === 'string' ? trainer : (trainer && trainer.username) ? trainer.username : '';
+  if (chip) chip.innerHTML = `<strong>${name}</strong>`;
 }
 
 function renderStatRail(stats) {
-  document.getElementById('stat-rank').textContent = `#${stats.rank}`;
-  document.getElementById('stat-matches').textContent = stats.matches;
-  document.getElementById('stat-wins').textContent = stats.wins;
-  document.getElementById('stat-points').textContent = stats.points.toLocaleString();
+  // stats may come from backend (total_matches) or demo (matches)
+  const rankEl = document.getElementById('stat-rank');
+  const matchesEl = document.getElementById('stat-matches');
+  const winsEl = document.getElementById('stat-wins');
+  const pointsEl = document.getElementById('stat-points');
+
+  if (rankEl) rankEl.textContent = `#${stats.rank ?? ''}`;
+  if (matchesEl) matchesEl.textContent = String(stats.total_matches ?? stats.matches ?? 0);
+  if (winsEl) winsEl.textContent = String(stats.wins ?? 0);
+  if (pointsEl) pointsEl.textContent = (stats.points ?? 0).toLocaleString();
 }
 
-function renderLastBattle(stats) {
+function renderLastBattle(lastBattle) {
   const container = document.getElementById('last-battle');
   if (!container) return;
 
-  if (!stats.lastBattle) {
+  if (!lastBattle) {
     container.innerHTML = `
       <div>
         <span class="label">Last Battle</span>
@@ -118,47 +157,62 @@ function renderLastBattle(stats) {
     return;
   }
 
-  const { result, points, matchNumber } = stats.lastBattle;
-  const resultClass = result === 'Win' ? 'result-win' : 'result-loss';
+  // lastBattle schema: { status, matches, wins, points }
   container.innerHTML = `
     <div>
       <span class="label">Last Battle</span>
-      <span class="data-readout ${resultClass}">${result}</span>
-      <span class="data-readout" style="color: var(--text-muted);"> · Match ${matchNumber}</span>
+      <span class="data-readout">${String(lastBattle.status)}</span>
+      <span class="data-readout" style="color: var(--text-muted);"> · Matches: ${lastBattle.matches}</span>
     </div>
     <div>
-      <span class="label">Points Earned</span>
-      <span class="data-readout" style="color: var(--accent-primary);">+${points}</span>
+      <span class="label">Wins</span>
+      <span class="data-readout">${lastBattle.wins}</span>
+    </div>
+    <div>
+      <span class="label">Points</span>
+      <span class="data-readout" style="color: var(--accent-primary);">${(lastBattle.points ?? 0)}</span>
     </div>
   `;
 }
 
-function renderTeamState(trainerId) {
+function renderTeamFromApi(team) {
   const noTeamEl = document.getElementById('no-team-state');
   const hasTeamEl = document.getElementById('has-team-state');
   const roster = document.getElementById('roster-preview');
 
-  const team = DemoData.getTeam(trainerId);
-  const isComplete = team && team.slots.every((s) => s && s.pokemonId);
-
-  if (!isComplete) {
-    noTeamEl.hidden = false;
-    hasTeamEl.hidden = true;
+  if (!team || !Array.isArray(team.slots) || team.slots.length === 0) {
+    if (noTeamEl) noTeamEl.hidden = false;
+    if (hasTeamEl) hasTeamEl.hidden = true;
+    if (roster) roster.innerHTML = '';
     return;
   }
 
-  noTeamEl.hidden = true;
-  hasTeamEl.hidden = false;
+  // Determine completeness: all slots must have a pokemon
+  const isComplete = team.slots.length === 6 && team.slots.every((s) => s && s.pokemon);
+  if (!isComplete) {
+    if (noTeamEl) noTeamEl.hidden = false;
+    if (hasTeamEl) hasTeamEl.hidden = true;
+    if (roster) roster.innerHTML = '';
+    return;
+  }
+
+  if (noTeamEl) noTeamEl.hidden = true;
+  if (hasTeamEl) hasTeamEl.hidden = false;
 
   roster.innerHTML = team.slots
     .map((slot) => {
-      const mon = DemoData.getPokemonById(slot.pokemonId);
+      const p = slot.pokemon;
+      const moveList = (slot.moves || []).map((m) => m.display_name || m.move_name || m).join(', ');
+      const types = [p.type1].concat(p.type2 ? [p.type2] : []);
+      // Use portrait helper with id/name so local asset fallback still works
+      const portraitHTML = pokemonPortraitHTML({ id: p.id, name: p.name }, 40);
       return `
         <div class="roster-card">
-          <div class="mon-portrait">${pokemonPortraitHTML(mon, 40)}</div>
+          <div class="mon-portrait">${portraitHTML}</div>
           <div>
-            <div class="mon-name">${mon.name}</div>
-            <div>${typePillsHTML(mon.types)}</div>
+            <div class="mon-name">${p.name}</div>
+            <div>${typePillsHTML(types)}</div>
+            <div class="mon-moves">${moveList}</div>
           </div>
         </div>
       `;
@@ -166,22 +220,64 @@ function renderTeamState(trainerId) {
     .join('');
 }
 
-function renderOverview() {
-  const trainer = AppSession.getActiveTrainer();
-  if (!trainer) return;
+async function loadTrainerDashboardData() {
+  const lastBattleEl = document.getElementById('last-battle');
+  if (lastBattleEl) lastBattleEl.textContent = 'Loading trainer data...';
 
-  const stats = DemoData.getTrainerStats(trainer.id);
+  // Hide team areas while loading
+  const noTeamEl = document.getElementById('no-team-state');
+  const hasTeamEl = document.getElementById('has-team-state');
+  if (noTeamEl) noTeamEl.hidden = true;
+  if (hasTeamEl) hasTeamEl.hidden = true;
 
-  renderTrainerChip(trainer);
-  renderStatRail(stats);
-  renderLastBattle(stats);
-  renderTeamState(trainer.id);
+  try {
+    await ensureApiLoaded();
+    const resp = await window.Api.getDashboard();
+    const stats = resp && resp.data ? resp.data : null;
+    if (!stats) {
+      if (lastBattleEl) lastBattleEl.textContent = 'Unable to load trainer data';
+      return;
+    }
+
+    renderTrainerChip(stats.username);
+    renderStatRail(stats);
+    renderLastBattle(stats.last_battle ?? null);
+
+    // Now load team (may be 404 if none exists)
+    try {
+      const teamResp = await window.Api.getTeam();
+      if (teamResp && teamResp.data) {
+        renderTeamFromApi(teamResp.data);
+      } else {
+        // treat as no team
+        if (noTeamEl) noTeamEl.hidden = false;
+        if (hasTeamEl) hasTeamEl.hidden = true;
+      }
+    } catch (teamErr) {
+      if (teamErr && teamErr.name === 'ApiError' && teamErr.status === 404) {
+        // No team yet
+        if (noTeamEl) noTeamEl.hidden = false;
+        if (hasTeamEl) hasTeamEl.hidden = true;
+      } else if (teamErr && teamErr.name === 'ApiError' && (teamErr.status === 401 || teamErr.status === 403)) {
+        if (lastBattleEl) lastBattleEl.innerHTML = `<div class="error">Session expired. Please log in again.</div>`;
+      } else {
+        if (lastBattleEl) lastBattleEl.innerHTML = `<div class="error">Unable to load team data.</div>`;
+      }
+    }
+  } catch (err) {
+    if (err && err.name === 'ApiError' && (err.status === 401 || err.status === 403)) {
+      if (lastBattleEl) lastBattleEl.innerHTML = `<div class="error">Session expired. Please log in again.</div>`;
+    } else {
+      if (lastBattleEl) lastBattleEl.innerHTML = `<div class="error">Unable to load trainer data</div>`;
+    }
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initSidebarNav();
   initMobileSidebarToggle();
   initLogout();
-  renderOverview();
+  // Load live dashboard data from backend
+  loadTrainerDashboardData();
   setActiveSection('overview');
 });
