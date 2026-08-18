@@ -21,7 +21,7 @@ function initRegisterForm() {
 
   const formStatus = form.querySelector('.form-status');
 
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
     clearFormErrors(form);
     if (formStatus) formStatus.textContent = '';
@@ -30,13 +30,18 @@ function initRegisterForm() {
     const email = form.elements.email.value;
     const password = form.elements.password.value;
 
-    const result = registerTrainer({ username, email, password });
+    const result = await registerTrainer({ username, email, password });
 
     if (!result.success) {
-      Object.entries(result.errors).forEach(([field, message]) => {
-        const fieldEl = form.querySelector(`[data-field="${field}"]`);
-        if (fieldEl) showFieldError(fieldEl, message);
-      });
+      // Might be a field-level errors map
+      if (result.errors && typeof result.errors === 'object') {
+        Object.entries(result.errors).forEach(([field, message]) => {
+          const fieldEl = form.querySelector(`[data-field="${field}"]`);
+          if (fieldEl) showFieldError(fieldEl, message);
+        });
+      } else if (result.error) {
+        if (formStatus) formStatus.innerHTML = `<div class="field-error" style="min-height:auto">${result.error}</div>`;
+      }
       return;
     }
 
@@ -54,7 +59,7 @@ function initLoginForm() {
 
   const formStatus = form.querySelector('.form-status');
 
-  form.addEventListener('submit', (event) => {
+  form.addEventListener('submit', async (event) => {
     event.preventDefault();
     clearFormErrors(form);
     if (formStatus) formStatus.textContent = '';
@@ -62,7 +67,7 @@ function initLoginForm() {
     const identifier = form.elements.identifier.value;
     const password = form.elements.password.value;
 
-    const result = loginTrainer({ identifier, password });
+    const result = await loginTrainer({ identifier, password });
 
     if (!result.success) {
       if (formStatus) {
@@ -71,6 +76,7 @@ function initLoginForm() {
       return;
     }
 
+    // On success, redirect to dashboard
     window.location.href = 'dashboard.html';
   });
 }
