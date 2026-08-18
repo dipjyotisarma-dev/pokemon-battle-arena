@@ -1,0 +1,308 @@
+/* ============================================================
+   POKÉDEX
+   ============================================================ */
+
+.pokedex-page-header {
+  height: var(--header-height);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-inline: var(--space-5);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10, 13, 18, 0.86);
+  backdrop-filter: blur(6px);
+}
+
+[data-theme='light'] .pokedex-page-header {
+  background: rgba(242, 240, 234, 0.9);
+}
+
+.pokedex-main {
+  max-width: 1080px;
+  margin-inline: auto;
+  padding: var(--space-6) var(--space-5) var(--space-8);
+}
+
+.pokedex-count {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-faint);
+}
+
+/* ---------- Filter bar ---------- */
+.dex-filters {
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-end;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-5);
+}
+
+.dex-filters .field {
+  margin-bottom: 0;
+  min-width: 180px;
+  flex: 1 1 180px;
+}
+
+.dex-filters .field-inline {
+  flex: 0 0 auto;
+  min-width: 140px;
+}
+
+/* ---------- Table (desktop) ---------- */
+.dex-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.dex-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.dex-table thead th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.dex-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t-fast) var(--ease);
+}
+
+.dex-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.dex-table tbody tr:hover {
+  background: var(--surface);
+}
+
+.dex-table td {
+  padding: var(--space-3) var(--space-4);
+  vertical-align: middle;
+}
+
+.dex-table .col-id {
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  width: 4.5em;
+}
+
+.dex-table .col-name {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.92rem;
+}
+
+.dex-table .mon-portrait-sm {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.dex-table .mon-portrait-sm img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.dex-table .col-stat {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.dex-table .col-battle-hp {
+  font-family: var(--font-mono);
+  color: var(--accent-primary);
+}
+
+.view-btn {
+  background: none;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  width: 34px;
+  height: 34px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.view-btn:hover {
+  color: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+}
+
+.dex-empty-row td {
+  text-align: center;
+  padding: var(--space-7) var(--space-4);
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+/* ============================================================
+   DETAIL MODAL
+   ============================================================ */
+.dex-detail-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.dex-detail-portrait {
+  width: 88px;
+  height: 88px;
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.dex-detail-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.dex-detail-id {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-faint);
+  margin-bottom: var(--space-1);
+}
+
+.dex-detail-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 1.4rem;
+  margin-bottom: var(--space-2);
+}
+
+.dex-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+}
+
+.dex-stat-cell {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  text-align: center;
+}
+
+.dex-stat-cell .label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: var(--space-1);
+}
+
+.dex-stat-cell .value {
+  font-family: var(--font-mono);
+  font-size: 1.2rem;
+  color: var(--text);
+}
+
+.dex-stat-cell.highlight .value {
+  color: var(--accent-primary);
+}
+
+/* ============================================================
+   RESPONSIVE — TABLE -> STACKED CARDS
+   ============================================================ */
+@media (max-width: 720px) {
+  .dex-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .dex-table,
+  .dex-table tbody,
+  .dex-table tr,
+  .dex-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .dex-table tr {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .dex-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+    border-bottom: none;
+  }
+
+  .dex-table td::before {
+    content: attr(data-label);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+
+  .dex-table .col-name {
+    justify-content: flex-start;
+  }
+
+  .dex-table .col-name::before {
+    display: none;
+  }
+
+  .dex-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .dex-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dex-filters .field,
+  .dex-filters .field-inline {
+    min-width: 0;
+  }
+}
