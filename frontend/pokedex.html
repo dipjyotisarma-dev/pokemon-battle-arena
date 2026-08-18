@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pokédex — Pokémon Battle Arena</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/pokedex.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="pokedex-page-header">
+    <a href="dashboard.html" class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      Battle Arena
+    </a>
+    <div class="header-actions">
+      <button class="theme-toggle" type="button" aria-pressed="false">
+        <span class="dot" aria-hidden="true"></span>
+        <span class="theme-label">Dark</span>
+      </button>
+      <a href="dashboard.html" class="btn btn-ghost">Back to Dashboard</a>
+    </div>
+  </header>
+
+  <main id="main" class="pokedex-main" tabindex="-1">
+    <div class="view-header">
+      <span class="eyebrow">Full Roster Reference</span>
+      <h2>Pokédex</h2>
+    </div>
+
+    <div class="dex-filters">
+      <div class="field">
+        <label for="dex-search">Search</label>
+        <input type="text" id="dex-search" placeholder="Search by name or ID…" />
+      </div>
+      <div class="field field-inline">
+        <label for="dex-type-filter">Type</label>
+        <select id="dex-type-filter"></select>
+      </div>
+      <button class="btn btn-secondary" type="button" id="dex-clear-filters">Clear Filters</button>
+    </div>
+
+    <p class="pokedex-count" id="dex-count" style="margin-bottom: var(--space-3);"></p>
+
+    <div class="dex-table-wrap">
+      <table class="dex-table">
+        <thead>
+          <tr>
+            <th scope="col">ID</th>
+            <th scope="col">Name</th>
+            <th scope="col">Types</th>
+            <th scope="col">BST</th>
+            <th scope="col">Battle HP</th>
+            <th scope="col">View</th>
+          </tr>
+        </thead>
+        <tbody id="dex-table-body"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- ============================================================
+       MODAL: POKÉMON DETAIL
+       ============================================================ -->
+  <div class="modal-overlay" id="pokemon-detail-modal">
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="dex-detail-name">
+      <div class="modal-header">
+        <h2 class="visually-hidden">Pokémon Details</h2>
+        <button class="modal-close" type="button" data-close-modal aria-label="Close details">✕</button>
+      </div>
+
+      <div class="dex-detail-head">
+        <div class="dex-detail-portrait" id="dex-detail-portrait"></div>
+        <div>
+          <div class="dex-detail-id" id="dex-detail-id"></div>
+          <div class="dex-detail-name" id="dex-detail-name"></div>
+          <div id="dex-detail-types"></div>
+          <div style="margin-top: var(--space-2);" id="dex-detail-category"></div>
+        </div>
+      </div>
+
+      <div class="dex-stat-grid" id="dex-detail-stats"></div>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/pokedex.js"></script>
+</body>
+</html>

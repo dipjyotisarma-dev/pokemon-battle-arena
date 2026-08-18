@@ -1,27 +1,302 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Pokémon Battle Arena</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/style.css" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pokémon Battle Arena — Home</title>
+  <meta name="description" content="A competitive 6-v-6 Pokémon battle platform. Register a trainer, build a team, and climb the leaderboard." />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/home.css" />
 </head>
 <body>
-<div id="app"></div>
+  <a class="skip-link" href="#main">Skip to content</a>
 
-<script src="js/data.js"></script>
-<script src="js/state.js"></script>
-<script src="js/utils.js"></script>
-<script src="js/icons.js"></script>
-<script src="js/team.js"></script>
-<script src="js/pokedex.js"></script>
-<script src="js/battle.js"></script>
-<script src="js/navigation.js"></script>
-<script src="js/team-ui.js"></script>
-<script src="js/battle-ui.js"></script>
-<script src="js/api.js"></script>
-<script src="js/app.js"></script>
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        Battle Arena
+      </a>
+      <div class="header-actions">
+        <button class="theme-toggle" type="button" aria-pressed="false">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="theme-label">Dark</span>
+        </button>
+        <a href="leaderboard.html" class="btn btn-ghost">Leaderboard</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- ============ HERO ============ -->
+    <section class="hero">
+      <div class="hero-bg-fallback" aria-hidden="true"></div>
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-scrim" aria-hidden="true"></div>
+
+      <div class="container hero-inner">
+        <span class="eyebrow">6-v-6 Competitive Arena</span>
+        <h1>Pokémon <span class="accent">Battle</span> Arena</h1>
+        <p class="hero-lede">
+          Register a trainer, assemble a six-Pokémon roster, and fight complete arena
+          matches with real type effectiveness, STAB, and turn-by-turn combat —
+          then defend your rank on the leaderboard.
+        </p>
+
+        <div class="action-grid">
+          <button class="action-card reticle" type="button" data-open-modal="rules-modal">
+            <span class="rt-tl" aria-hidden="true"></span>
+            <span class="idx">01</span>
+            <span class="label">Game Rules</span>
+            <span class="desc">How teams, moves, and matches work.</span>
+          </button>
+
+          <button class="action-card reticle" type="button" data-open-modal="register-modal">
+            <span class="idx">02</span>
+            <span class="label">Register Trainer</span>
+            <span class="desc">Create your trainer profile.</span>
+          </button>
+
+          <button class="action-card reticle is-primary" type="button" data-open-modal="login-modal">
+            <span class="idx">03</span>
+            <span class="label">Enter Arena</span>
+            <span class="desc">Log in and reach your dashboard.</span>
+          </button>
+
+          <a class="action-card reticle" href="leaderboard.html">
+            <span class="idx">04</span>
+            <span class="label">Leaderboard</span>
+            <span class="desc">See the current top trainers.</span>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TICKER ============ -->
+    <!-- <div class="ticker" aria-hidden="true">
+      <div class="ticker-track" id="ticker-track"></div>
+    </div> -->
+
+    <!-- ============ ABOUT ============ -->
+    <section class="section about">
+      <div class="container">
+        <span class="eyebrow">How a Match Works</span>
+        <h2 style="margin-top: var(--space-2); margin-bottom: var(--space-6);">Built on a Real Ruleset</h2>
+
+        <div class="about-grid">
+          <div class="card">
+            <h3>Build a Roster</h3>
+            <p>Six Pokémon, four moves each. One Legendary, Mythical, or Ultra Beast allowed per team — the rest is your strategy.</p>
+          </div>
+          <div class="card">
+            <h3>Fight It Out</h3>
+            <p>Each of your six battles the opponent exactly once. Type effectiveness, STAB, and stats decide every exchange.</p>
+          </div>
+          <div class="card">
+            <h3>Climb the Ranks</h3>
+            <p>Completed matches earn points toward your leaderboard rank. Incomplete matches are discarded, not scored.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ FEEDBACK ============ -->
+    <section class="section feedback-section">
+      <div class="container">
+        <span class="eyebrow">Feedback</span>
+        <h2>Report a Bug or Suggest Something</h2>
+        <p class="lede">Found something broken, or have an idea for the arena? Send it straight to the developer.</p>
+
+        <form id="feedback-form" novalidate>
+          <div class="field" data-field="email">
+            <label for="feedback-email">Email</label>
+            <input type="email" id="feedback-email" name="email" autocomplete="email" required />
+            <span class="field-error" role="alert"></span>
+          </div>
+
+          <div class="field" data-field="message">
+            <label for="feedback-message">Message</label>
+            <textarea id="feedback-message" name="message" rows="4" required></textarea>
+            <span class="field-error" role="alert"></span>
+          </div>
+
+          <button class="btn btn-primary" type="submit">Send Feedback</button>
+          <div class="form-status" style="margin-top: var(--space-4);" aria-live="polite"></div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>Pokémon Battle Arena — Frontend Prototype</span>
+      <span>Demo data only, resets on refresh</span>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       MODAL: GAME RULES
+       ============================================================ -->
+  <div class="modal-overlay" id="rules-modal">
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="rules-title">
+      <div class="modal-header">
+        <h2 id="rules-title">Game Rules</h2>
+        <button class="modal-close" type="button" data-close-modal aria-label="Close rules">✕</button>
+      </div>
+
+      <nav class="rules-toc" aria-label="Rules sections">
+        <a href="#rules-purpose">Purpose</a>
+        <a href="#rules-trainer">Trainers</a>
+        <a href="#rules-team">Teams</a>
+        <a href="#rules-moves">Moves</a>
+        <a href="#rules-combat">Combat</a>
+        <a href="#rules-match">Matches</a>
+        <a href="#rules-scoring">Scoring</a>
+        <a href="#rules-dex">Available Pokémon</a>
+      </nav>
+
+      <div class="rules-section" id="rules-purpose">
+        <h3><span class="n">01</span> Purpose of the Game</h3>
+        <p>Battle Arena is a competitive simulator: build a six-Pokémon team, fight complete 6-v-6 matches against an AI opponent, and earn points that determine your leaderboard rank.</p>
+      </div>
+
+      <div class="rules-section" id="rules-trainer">
+        <h3><span class="n">02</span> Trainer Registration</h3>
+        <p>Every trainer registers with a public trainer name, an email, and a password. The trainer name is what appears on the leaderboard and in battle.</p>
+      </div>
+
+      <div class="rules-section" id="rules-team">
+        <h3><span class="n">03</span> Team Creation</h3>
+        <p>Every trainer needs a complete team before entering the arena.</p>
+        <ul>
+          <li>Exactly <strong>six Pokémon</strong> per team.</li>
+          <li>No duplicate Pokémon within a team.</li>
+          <li>At most <strong>one Legendary, Mythical, or Ultra Beast</strong> per team — the rest must be standard Pokémon.</li>
+          <li>Each Pokémon must have exactly <strong>four moves</strong>, with no duplicate moves.</li>
+        </ul>
+        <p>Teams can be edited at any time from the dashboard; the same validation rules apply to edits.</p>
+      </div>
+
+      <div class="rules-section" id="rules-moves">
+        <h3><span class="n">04</span> Moves, Types &amp; STAB</h3>
+        <p>Every move has a type, a category (Physical or Special), and a base power. Physical moves scale off Attack and Defense; Special moves scale off Special Attack and Special Defense.</p>
+        <div class="callout">
+          <strong>STAB (Same-Type Attack Bonus):</strong> if a move's type matches one of the user's own types, its damage is multiplied by 1.5×.
+        </div>
+        <p>Type effectiveness follows the standard chart: a move can be super effective (2×), not very effective (0.5×), or have no effect (0×) depending on the defender's types.</p>
+      </div>
+
+      <div class="rules-section" id="rules-combat">
+        <h3><span class="n">05</span> Turn Order &amp; Damage</h3>
+        <p>Turn order for each battle is decided by Speed — the faster Pokémon acts first each round, and combat alternates until one Pokémon faints.</p>
+        <div class="formula">damage = ((2 × power × atk / def) / 10) × STAB × typeEffectiveness × randomFactor</div>
+        <p>Each Pokémon's fighting HP for the match — its <strong>Battle HP</strong> — is derived from its base HP rather than used directly.</p>
+        <div class="formula">Battle HP = 5 × Base HP</div>
+        <p>When a Pokémon's Battle HP reaches zero, it faints and cannot be used again for the rest of that arena match.</p>
+      </div>
+
+      <div class="rules-section" id="rules-match">
+        <h3><span class="n">06</span> Matches &amp; Exiting</h3>
+        <p>A complete arena match is 6-v-6: each of your six Pokémon battles exactly once against an opponent Pokémon. You may exit an ongoing battle at any time from the Battle screen.</p>
+        <ul>
+          <li>Exiting mid-match discards that <strong>incomplete match</strong> — it is not scored and earns no points.</li>
+          <li>Only fully completed matches count toward your stats and the leaderboard.</li>
+          <li>If you've completed at least one match before exiting, you'll see a full session summary before returning to the dashboard.</li>
+        </ul>
+      </div>
+
+      <div class="rules-section" id="rules-scoring">
+        <h3><span class="n">07</span> Scoring &amp; Leaderboard</h3>
+        <p>Completed matches award points based on wins within that match. Your total points, win count, and match count update your leaderboard rank immediately after a completed session. The final battle summary shows the match outcome, points earned, and your updated rank.</p>
+      </div>
+
+      <div class="rules-section" id="rules-dex">
+        <h3><span class="n">08</span> Available Pokémon</h3>
+        <p>The full roster is browsable in the Pokédex, including base stats, types, and each Pokémon's Battle HP. Legendary, Mythical, and Ultra Beast entries are clearly marked, since only one may appear per team.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL: REGISTER TRAINER
+       ============================================================ -->
+  <div class="modal-overlay" id="register-modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="register-title">
+      <div class="modal-header">
+        <h2 id="register-title">Register Trainer</h2>
+        <button class="modal-close" type="button" data-close-modal aria-label="Close registration">✕</button>
+      </div>
+
+      <form id="register-form" novalidate>
+        <div class="field" data-field="username">
+          <label for="register-username">Trainer Name</label>
+          <input type="text" id="register-username" name="username" autocomplete="username" required />
+          <span class="field-error" role="alert"></span>
+        </div>
+
+        <div class="field" data-field="email">
+          <label for="register-email">Email</label>
+          <input type="email" id="register-email" name="email" autocomplete="email" required />
+          <span class="field-error" role="alert"></span>
+        </div>
+
+        <div class="field" data-field="password">
+          <label for="register-password">Password</label>
+          <input type="password" id="register-password" name="password" autocomplete="new-password" required />
+          <span class="field-error" role="alert"></span>
+        </div>
+
+        <div style="display:flex; gap: var(--space-3); margin-top: var(--space-5);">
+          <button class="btn btn-primary btn-block" type="submit">Register</button>
+          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+        </div>
+
+        <div class="form-status" style="margin-top: var(--space-4);" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ============================================================
+       MODAL: ENTER ARENA (LOGIN)
+       ============================================================ -->
+  <div class="modal-overlay" id="login-modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+      <div class="modal-header">
+        <h2 id="login-title">Enter Arena</h2>
+        <button class="modal-close" type="button" data-close-modal aria-label="Close login">✕</button>
+      </div>
+
+      <form id="login-form" novalidate>
+        <div class="field" data-field="identifier">
+          <label for="login-identifier">Trainer Name or Email</label>
+          <input type="text" id="login-identifier" name="identifier" autocomplete="username" required />
+          <span class="field-error" role="alert"></span>
+        </div>
+
+        <div class="field" data-field="password">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" name="password" autocomplete="current-password" required />
+          <span class="field-error" role="alert"></span>
+        </div>
+
+        <p style="font-family: var(--font-mono); font-size: 0.78rem; color: var(--text-faint); margin-bottom: var(--space-4);">
+          Demo account — AshK / Pikachu123!
+        </p>
+
+        <div style="display:flex; gap: var(--space-3);">
+          <button class="btn btn-primary btn-block" type="submit">Enter Arena</button>
+          <button class="btn btn-secondary" type="button" data-close-modal>Cancel</button>
+        </div>
+
+        <div class="form-status" style="margin-top: var(--space-4);" aria-live="polite"></div>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/data.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/home.js"></script>
 </body>
 </html>

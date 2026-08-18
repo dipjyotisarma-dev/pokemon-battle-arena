@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leaderboard — Pokémon Battle Arena</title>
+  <meta name="description" content="Top trainers in the Pokémon Battle Arena, ranked by completed match points." />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/leaderboard.css" />
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <header class="site-header">
+    <div class="container">
+      <a href="index.html" class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        Battle Arena
+      </a>
+      <div class="header-actions">
+        <button class="theme-toggle" type="button" aria-pressed="false">
+          <span class="dot" aria-hidden="true"></span>
+          <span class="theme-label">Dark</span>
+        </button>
+        <a href="index.html" class="btn btn-ghost">Home</a>
+      </div>
+    </div>
+  </header>
+
+  <main id="main" class="leaderboard-main" tabindex="-1">
+    <div class="view-header">
+      <span class="eyebrow">Ranked by Completed Matches</span>
+      <h2>Leaderboard</h2>
+    </div>
+
+    <div class="podium" id="podium"></div>
+
+    <div class="rank-table-wrap">
+      <table class="rank-table">
+        <thead>
+          <tr>
+            <th scope="col">Rank</th>
+            <th scope="col">Trainer</th>
+            <th scope="col">Matches</th>
+            <th scope="col">Wins</th>
+            <th scope="col">Points</th>
+          </tr>
+        </thead>
+        <tbody id="rank-table-body"></tbody>
+      </table>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>Pokémon Battle Arena — Frontend Prototype</span>
+      <span>Demo data only, resets on refresh</span>
+    </div>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/theme.js"></script>
+  <script src="js/leaderboard.js"></script>
+</body>
+</html>
