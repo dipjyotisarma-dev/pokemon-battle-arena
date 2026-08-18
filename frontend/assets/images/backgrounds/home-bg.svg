@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#05060a"/>
+      <stop offset="55%" stop-color="#0a0d16"/>
+      <stop offset="100%" stop-color="#0d1220"/>
+    </linearGradient>
+    <radialGradient id="floodA" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f2b705" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#f2b705" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="floodB" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#2fd9c6" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#2fd9c6" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="floorFade" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0a0d16" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#05060a" stop-opacity="1"/>
+    </linearGradient>
+    <linearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#eef2f6" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#eef2f6" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- base night sky -->
+  <rect width="1600" height="1000" fill="url(#sky)"/>
+
+  <!-- distant stadium light rigs (structural silhouettes, not decoration-only) -->
+  <g stroke="#1c2130" stroke-width="4" opacity="0.8">
+    <line x1="120" y1="760" x2="120" y2="120"/>
+    <line x1="120" y1="120" x2="60" y2="60"/>
+    <line x1="120" y1="120" x2="180" y2="60"/>
+    <line x1="1480" y1="780" x2="1480" y2="150"/>
+    <line x1="1480" y1="150" x2="1420" y2="90"/>
+    <line x1="1480" y1="150" x2="1540" y2="90"/>
+  </g>
+  <g fill="#20263a">
+    <rect x="70" y="40" width="100" height="26" rx="3"/>
+    <rect x="1430" y="70" width="100" height="26" rx="3"/>
+  </g>
+
+  <!-- floodlight beams cutting down into the arena -->
+  <polygon points="120,60 40,760 200,760" fill="url(#beam)"/>
+  <polygon points="1480,90 1360,780 1600,780" fill="url(#beam)"/>
+
+  <!-- warm/cool glow pools, matching the accent palette -->
+  <circle cx="430" cy="300" r="420" fill="url(#floodA)"/>
+  <circle cx="1220" cy="620" r="460" fill="url(#floodB)"/>
+
+  <!-- arena horizon ring, suggesting a battle circle without being literal -->
+  <ellipse cx="800" cy="880" rx="900" ry="140" fill="none" stroke="#2a3140" stroke-width="2" opacity="0.5"/>
+  <ellipse cx="800" cy="880" rx="620" ry="96" fill="none" stroke="#f2b705" stroke-width="1.5" opacity="0.22"/>
+
+  <!-- faint instrument grid across the upper field for HUD texture -->
+  <g stroke="#1c2130" stroke-width="1" opacity="0.35">
+    <line x1="0" y1="200" x2="1600" y2="200"/>
+    <line x1="0" y1="340" x2="1600" y2="340"/>
+    <line x1="0" y1="480" x2="1600" y2="480"/>
+  </g>
+
+  <!-- arena floor, fading to black at the bottom for text legibility -->
+  <rect x="0" y="700" width="1600" height="300" fill="url(#floorFade)"/>
+</svg>
