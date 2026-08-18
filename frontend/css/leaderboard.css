@@ -1,0 +1,229 @@
+/* ============================================================
+   LEADERBOARD
+   ============================================================ */
+
+.leaderboard-main {
+  max-width: 1080px;
+  margin-inline: auto;
+  padding: var(--space-6) var(--space-5) var(--space-8);
+}
+
+.leaderboard-main .view-header {
+  margin-bottom: var(--space-7);
+}
+
+/* ============================================================
+   PODIUM (Top 3)
+   Restrained treatment: rank-specific accent color on the border
+   and rank glyph only — no gradients, glow, or heavy shadows.
+   1st is visually first and slightly elevated; 2nd/3rd sit level.
+   ============================================================ */
+.podium {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-7);
+  align-items: end;
+}
+
+.podium-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-5) var(--space-4);
+  text-align: center;
+}
+
+.podium-card[data-place='1'] {
+  border-color: var(--accent-primary);
+  padding-block: var(--space-6);
+  order: 2;
+}
+
+.podium-card[data-place='2'] {
+  border-color: var(--border-strong);
+  order: 1;
+}
+
+.podium-card[data-place='3'] {
+  border-color: var(--border-strong);
+  order: 3;
+}
+
+.podium-rank {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: var(--space-3);
+}
+
+.podium-card[data-place='1'] .podium-rank {
+  color: var(--accent-primary);
+}
+
+.podium-number {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.4rem;
+  line-height: 1;
+  color: var(--text-faint);
+  margin-bottom: var(--space-3);
+}
+
+.podium-card[data-place='1'] .podium-number {
+  color: var(--accent-primary);
+  font-size: 3rem;
+}
+
+.podium-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 1.1rem;
+  margin-bottom: var(--space-4);
+}
+
+.podium-stats {
+  display: flex;
+  justify-content: center;
+  gap: var(--space-4);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+}
+
+.podium-stats .stat-block .n {
+  display: block;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.podium-stats .stat-block .l {
+  color: var(--text-faint);
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.podium-card[data-place='1'] .podium-stats .n {
+  color: var(--accent-primary);
+}
+
+/* ============================================================
+   RANKING TABLE (rank 4 onward)
+   ============================================================ */
+.rank-table-wrap {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.rank-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.rank-table thead th {
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.rank-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background var(--t-fast) var(--ease);
+}
+
+.rank-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.rank-table tbody tr:hover {
+  background: var(--surface);
+}
+
+.rank-table td {
+  padding: var(--space-3) var(--space-4);
+}
+
+.rank-table .col-rank {
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  width: 3.5em;
+}
+
+.rank-table .col-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+.rank-table .col-stat {
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+
+.rank-table .col-points {
+  font-family: var(--font-mono);
+  color: var(--accent-primary);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 720px) {
+  .podium {
+    grid-template-columns: 1fr;
+  }
+
+  .podium-card[data-place='1'],
+  .podium-card[data-place='2'],
+  .podium-card[data-place='3'] {
+    order: initial;
+    padding-block: var(--space-5);
+  }
+
+  .rank-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+  }
+
+  .rank-table,
+  .rank-table tbody,
+  .rank-table tr,
+  .rank-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .rank-table tr {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .rank-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) 0;
+  }
+
+  .rank-table td::before {
+    content: attr(data-label);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+}
