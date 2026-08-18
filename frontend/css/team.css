@@ -1,0 +1,402 @@
+/* ============================================================
+   TEAM BUILDER (Create Team / Edit Team views inside dashboard.html)
+   ============================================================ */
+
+.team-slot-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.team-slot {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  min-height: 168px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease);
+  overflow: hidden;
+  text-align: left;
+  padding: 0;
+}
+
+.team-slot:hover,
+.team-slot:focus-visible {
+  border-color: var(--accent-primary);
+}
+
+.team-slot.slot-empty {
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--text-faint);
+}
+
+.team-slot.slot-empty .plus {
+  font-family: var(--font-display);
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--text-faint);
+}
+
+.team-slot.slot-empty:hover .plus {
+  color: var(--accent-primary);
+}
+
+.team-slot.slot-empty .plus-label {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.team-slot.slot-filled {
+  padding: var(--space-3);
+  justify-content: space-between;
+}
+
+.slot-filled .slot-top {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.slot-filled .mon-portrait {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.slot-filled .mon-portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.slot-filled .mon-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 1rem;
+  margin-bottom: 0.3em;
+}
+
+.slot-filled .move-summary {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--text-faint);
+}
+
+.slot-filled .move-summary.incomplete {
+  color: var(--warning);
+}
+
+.slot-index {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--text-faint);
+  letter-spacing: 0.1em;
+  padding: var(--space-2) var(--space-3) 0;
+}
+
+/* ---------- Validation summary ---------- */
+.validation-panel {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5);
+}
+
+.validation-panel.is-valid {
+  border-color: var(--success);
+}
+
+.validation-panel.has-errors {
+  border-color: var(--warning);
+}
+
+.validation-panel .v-title {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: var(--space-2);
+  display: block;
+}
+
+.validation-panel.is-valid .v-title {
+  color: var(--success);
+}
+
+.validation-panel.has-errors .v-title {
+  color: var(--warning);
+}
+
+.validation-list li {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  padding-left: var(--space-4);
+  position: relative;
+  margin-bottom: var(--space-1);
+}
+
+.validation-list li::before {
+  content: '—';
+  position: absolute;
+  left: 0;
+  color: var(--warning);
+}
+
+.team-builder-actions {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+}
+
+.save-feedback {
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--success);
+}
+
+/* ============================================================
+   POKÉMON PICKER MODAL
+   ============================================================ */
+.picker-filters {
+  display: flex;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  flex-wrap: wrap;
+}
+
+.picker-filters input[type='text'] {
+  flex: 1 1 200px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.65em 0.9em;
+  color: var(--text);
+}
+
+.picker-filters select {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.65em 0.9em;
+  color: var(--text);
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: var(--space-3);
+  max-height: 46vh;
+  overflow-y: auto;
+  padding-right: var(--space-1);
+}
+
+.picker-option {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  text-align: left;
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.picker-option:hover:not([disabled]) {
+  border-color: var(--accent-primary);
+}
+
+.picker-option[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.picker-option .mon-portrait {
+  width: 100%;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.picker-option .mon-portrait img {
+  height: 100%;
+  object-fit: contain;
+}
+
+.picker-option .mon-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.9rem;
+}
+
+.picker-option .block-reason {
+  font-family: var(--font-mono);
+  font-size: 0.62rem;
+  color: var(--danger);
+}
+
+.picker-empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-faint);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: var(--space-6) 0;
+}
+
+/* ============================================================
+   MOVE PICKER
+   ============================================================ */
+.move-picker-target {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+
+.move-picker-target .mon-portrait {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.move-slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+}
+
+.move-slot-chip {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 2.4em;
+}
+
+.move-slot-chip.is-filled {
+  border-color: var(--accent-secondary);
+  color: var(--text);
+}
+
+.move-slot-chip.is-empty {
+  color: var(--text-faint);
+}
+
+.move-slot-chip button {
+  background: none;
+  border: none;
+  color: var(--text-faint);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.move-slot-chip button:hover {
+  color: var(--danger);
+}
+
+.move-pool {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  max-height: 32vh;
+  overflow-y: auto;
+}
+
+.move-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease);
+}
+
+.move-option:hover:not([disabled]) {
+  border-color: var(--accent-secondary);
+}
+
+.move-option[disabled] {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.move-option .move-name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.88rem;
+}
+
+.move-option .move-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* ---------- Slot actions modal ---------- */
+.slot-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 1024px) {
+  .team-slot-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 560px) {
+  .move-slots {
+    grid-template-columns: 1fr;
+  }
+
+  .picker-filters {
+    flex-direction: column;
+  }
+}
