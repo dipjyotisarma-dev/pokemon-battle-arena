@@ -1,0 +1,348 @@
+/* ============================================================
+   HOME PAGE
+   ============================================================ */
+
+/* ---------- Hero ---------- */
+.hero {
+  position: relative;
+  min-height: calc(100vh - var(--header-height));
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  background: var(--bg);
+  isolation: isolate;
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: url('../assets/images/backgrounds/home-bg.svg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Safety-net layer only: sits BEHIND .hero-bg (lower z-index) so it is
+   invisible whenever the real asset above has loaded. It only becomes
+   visible if that image request ever fails, so the hero never renders
+   as flat empty space. */
+.hero-bg-fallback {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: radial-gradient(ellipse 60% 50% at 30% 20%, rgba(242, 183, 5, 0.14), transparent 60%),
+    radial-gradient(ellipse 50% 45% at 85% 75%, rgba(47, 217, 198, 0.1), transparent 60%),
+    linear-gradient(180deg, #0a0d12 0%, #0d1118 60%, #0a0d12 100%);
+}
+
+.hero-bg-fallback::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 64px 64px;
+  opacity: 0.14;
+  mask-image: radial-gradient(ellipse 70% 60% at 50% 40%, black, transparent);
+}
+
+.hero-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: linear-gradient(180deg, rgba(10, 13, 18, 0.35) 0%, rgba(10, 13, 18, 0.85) 78%, var(--bg) 100%);
+}
+
+[data-theme='light'] .hero-scrim {
+  background: linear-gradient(180deg, rgba(242, 240, 234, 0.5) 0%, rgba(242, 240, 234, 0.92) 78%, var(--bg) 100%);
+}
+
+.hero-inner {
+  max-width: 760px;
+}
+
+.hero .eyebrow {
+  display: block;
+  margin-bottom: var(--space-4);
+}
+
+.hero h1 {
+  margin-bottom: var(--space-4);
+}
+
+.hero h1 .accent {
+  color: var(--accent-primary);
+}
+
+.hero-lede {
+  font-size: 1.1rem;
+  max-width: 52ch;
+  margin-bottom: var(--space-6);
+}
+
+/* ---------- Action grid (the four primary commands) ---------- */
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-3);
+  margin-bottom: var(--space-7);
+}
+
+.action-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
+  text-align: left;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+
+.action-card:hover,
+.action-card:focus-visible {
+  border-color: var(--accent-primary);
+  transform: translateY(-2px);
+}
+
+.action-card .idx {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--accent-secondary);
+}
+
+.action-card .label {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 1.05rem;
+}
+
+.action-card .desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+.action-card.is-primary {
+  background: linear-gradient(180deg, rgba(242, 183, 5, 0.12), transparent);
+  border-color: var(--accent-primary-dim);
+}
+
+/* ---------- Stats ticker strip ---------- */
+.ticker {
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-elevated);
+  overflow: hidden;
+}
+
+.ticker-track {
+  display: flex;
+  width: max-content;
+  padding-block: var(--space-3);
+  animation: ticker-scroll 36s linear infinite;
+  will-change: transform;
+}
+
+/* Two identical sets placed edge to edge. Animating the track exactly
+   -50% moves set A fully out of view at the same moment set B has
+   slid into the position set A started in — so the loop point is
+   invisible. The internal gap is applied per-set (not on the track)
+   so the spacing carries through the seam between sets too. */
+.ticker-set {
+  display: flex;
+  flex-shrink: 0;
+  gap: var(--space-8);
+  padding-inline-end: var(--space-8);
+}
+
+@keyframes ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+/* Reduced motion: stop the marquee and show a single static row
+   instead of a moving one. The duplicate set is hidden outright
+   rather than merely frozen mid-scroll, so nothing looks cut off. */
+@media (prefers-reduced-motion: reduce) {
+  .ticker-track {
+    animation: none;
+    width: 100%;
+  }
+
+  .ticker-set[data-copy='b'] {
+    display: none;
+  }
+}
+
+.ticker-item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.ticker-item strong {
+  color: var(--accent-primary);
+  font-size: 1rem;
+}
+
+/* ---------- Intro / about strip ---------- */
+.about-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-5);
+}
+
+.about-grid .card h3 {
+  color: var(--accent-secondary);
+  margin-bottom: var(--space-3);
+  font-size: 1.05rem;
+}
+
+/* ---------- Feedback section ---------- */
+.feedback-section .container {
+  max-width: 620px;
+}
+
+.feedback-section h2 {
+  margin-bottom: var(--space-2);
+}
+
+.feedback-section .lede {
+  margin-bottom: var(--space-5);
+}
+
+/* ============================================================
+   RULES MODAL CONTENT
+   ============================================================ */
+.rules-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-5);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border);
+}
+
+.rules-toc a {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  text-decoration: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.4em 0.7em;
+  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+}
+
+.rules-toc a:hover {
+  color: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+}
+
+.rules-section {
+  margin-bottom: var(--space-6);
+}
+
+.rules-section h3 {
+  color: var(--accent-primary);
+  margin-bottom: var(--space-3);
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+
+.rules-section h3 .n {
+  font-family: var(--font-mono);
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+
+.rules-section p + p {
+  margin-top: var(--space-3);
+}
+
+.rules-section ul {
+  margin-top: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.rules-section li {
+  padding-left: var(--space-4);
+  position: relative;
+  color: var(--text-muted);
+}
+
+.rules-section li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 6px;
+  height: 6px;
+  background: var(--accent-secondary);
+}
+
+.callout {
+  background: var(--surface);
+  border-left: 3px solid var(--accent-secondary);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4);
+  margin-top: var(--space-3);
+}
+
+.callout strong {
+  color: var(--text);
+}
+
+.formula {
+  font-family: var(--font-mono);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3) var(--space-4);
+  margin-top: var(--space-3);
+  color: var(--accent-primary);
+  font-size: 0.9rem;
+  overflow-x: auto;
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .action-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .about-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 560px) {
+  .action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    padding-block: var(--space-7);
+  }
+}
