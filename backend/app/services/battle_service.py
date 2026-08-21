@@ -74,7 +74,7 @@ def calculate_damage(
 ):
     """
     Calculate damage using the original game's
-    battle-damage mechanics.
+    battle-damage mechanics and return (damage, effectiveness_category).
     """
 
     move_type = move["move_type"]
@@ -120,7 +120,14 @@ def calculate_damage(
         * effectiveness
     )
 
-    return max(0, int(damage))
+    if effectiveness > 1.0:
+        eff_cat = "super_effective"
+    elif effectiveness < 1.0:
+        eff_cat = "not_very_effective"
+    else:
+        eff_cat = "neutral"
+
+    return max(0, int(damage)), eff_cat
 
 
 def get_active_move(
@@ -146,9 +153,9 @@ def execute_attack(
 ):
     """
     Execute one attack and return the resulting HP,
-    damage, and battle-log message.
+    damage, effectiveness category, and battle-log message.
     """
-    damage = calculate_damage(
+    damage, effectiveness = calculate_damage(
         attacker=attacker,
         defender=defender,
         move=move,
@@ -165,7 +172,7 @@ def execute_attack(
         f"{damage} damage."
     )
 
-    return new_hp, damage, log
+    return new_hp, damage, effectiveness, log
 
 
 def build_attack_event(
@@ -174,6 +181,7 @@ def build_attack_event(
     target: dict,
     move: dict,
     damage: int,
+    effectiveness: str = "neutral",
 ):
     """
     Create a structured event for one Pokémon attack.
@@ -189,6 +197,7 @@ def build_attack_event(
         "category": move["category"],
         "base_power": move["base_power"],
         "damage": damage,
+        "effectiveness": effectiveness,
         "message": (
             f"{attacker['display_name']} used "
             f"{move['display_name']} and dealt "
@@ -1025,7 +1034,7 @@ def continue_battle(
             opponent_pokemon["moves"]
         )
 
-        trainer_hp, damage, log = execute_attack(
+        trainer_hp, damage, effectiveness, log = execute_attack(
             attacker=opponent_pokemon,
             defender=trainer_pokemon,
             defender_hp=match_state["trainer_current_hp"],
@@ -1039,6 +1048,7 @@ def continue_battle(
                 target=trainer_pokemon,
                 move=opponent_move,
                 damage=damage,
+                effectiveness=effectiveness,
             )
         )
 
@@ -1167,7 +1177,7 @@ def execute_trainer_move(
     )
 
     # Trainer attacks
-    opponent_hp, damage, log = execute_attack(
+    opponent_hp, damage, effectiveness, log = execute_attack(
         attacker=trainer_pokemon,
         defender=opponent_pokemon,
         defender_hp=opponent_hp,
@@ -1181,6 +1191,7 @@ def execute_trainer_move(
             target=opponent_pokemon,
             move=trainer_move,
             damage=damage,
+            effectiveness=effectiveness,
         )
     )
 
@@ -1232,7 +1243,7 @@ def execute_trainer_move(
         opponent_pokemon["moves"]
     )
 
-    trainer_hp, damage, log = execute_attack(
+    trainer_hp, damage, effectiveness, log = execute_attack(
         attacker=opponent_pokemon,
         defender=trainer_pokemon,
         defender_hp=trainer_hp,
@@ -1246,6 +1257,7 @@ def execute_trainer_move(
             target=trainer_pokemon,
             move=opponent_move,
             damage=damage,
+            effectiveness=effectiveness,
         )
     )
 

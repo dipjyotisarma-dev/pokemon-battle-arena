@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    TEAM BUILDER
    (Modified to integrate with backend API for Create/Edit/Load/Save/Move Options)
    Note: preserves existing DOM structure and UX. Uses window.Api and window.Session
@@ -19,7 +19,8 @@ const moveOptionsCache = {};
 // Small helper to load Api/Session if not yet present
 function _loadScript(src) {
   return new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${src}"]`);
+    const filename = src.split('/').pop();
+    const existing = document.querySelector(`script[src$="${filename}"]`);
     if (existing) {
       if (existing.readyState === 'complete' || existing.readyState === 'loaded') return resolve();
       existing.addEventListener('load', () => resolve());
@@ -36,20 +37,20 @@ function _loadScript(src) {
 }
 
 async function ensureApiLoaded() {
-  if (!window.Session) await _loadScript('/js/session.js');
-  if (!window.Api) await _loadScript('/js/api.js');
+  if (!window.Session) await _loadScript('js/session.js');
+  if (!window.Api) await _loadScript('js/api.js');
 }
 
-// Helper to get display name for a move id, preferring DemoData (if present) then cached moveOptions
+// Helper to get display name for a move id, preferring cached moveOptions then DemoData
 function getMoveName(moveId, pokemonId) {
   try {
     const idNum = Number(moveId);
-    const demoMove = typeof DemoData !== 'undefined' ? DemoData.getMoveById(idNum) : null;
-    if (demoMove) return demoMove.name;
     if (moveOptionsCache[pokemonId]) {
       const m = moveOptionsCache[pokemonId].find((mo) => mo.id === idNum);
       if (m) return m.display_name || m.move_name || String(idNum);
     }
+    const demoMove = typeof DemoData !== 'undefined' ? DemoData.getMoveById(idNum) : null;
+    if (demoMove) return demoMove.name;
     return String(moveId);
   } catch (e) {
     return String(moveId);
@@ -62,7 +63,6 @@ function getMoveName(moveId, pokemonId) {
 
 /** Create Team: blank builder only. Uses GET /team to determine if trainer already has a team. */
 async function renderCreateTeam() {
-  const trainer = AppSession.getActiveTrainer();
   const existsNotice = document.getElementById('team-exists-notice');
   const nothingNotice = document.getElementById('team-builder-empty-notice');
   const builder = document.getElementById('team-builder');
@@ -81,7 +81,6 @@ async function renderCreateTeam() {
     builder.hidden = true;
     return;
   } catch (err) {
-    // Api client throws ApiError for non-2xx responses
     if (err && err.name === 'ApiError' && err.status === 404) {
       // No team yet -> allow create
       existsNotice.hidden = true;
@@ -89,8 +88,11 @@ async function renderCreateTeam() {
       enterTeamBuilder(new Array(TEAM_SIZE).fill(null));
       return;
     }
+    if (err && err.name === 'ApiError' && (err.status === 401 || err.status === 403)) {
+      window.location.href = 'index.html';
+      return;
+    }
 
-    // Other errors (network / 401 / 500)
     existsNotice.hidden = false;
     builder.hidden = true;
     existsNotice.textContent = 'Unable to check existing team: ' + (err?.message || 'Connection error');
@@ -100,7 +102,6 @@ async function renderCreateTeam() {
 
 /** Edit Team: the only place a saved team can be modified. Loads team from server using GET /team. */
 async function renderEditTeam() {
-  const trainer = AppSession.getActiveTrainer();
   const existsNotice = document.getElementById('team-exists-notice');
   const nothingNotice = document.getElementById('team-builder-empty-notice');
   const builder = document.getElementById('team-builder');
@@ -114,12 +115,28 @@ async function renderEditTeam() {
     await ensureApiLoaded();
     const resp = await window.Api.getTeam();
     if (resp && resp.data && resp.data.slots) {
-      // Map server team to teamDraft shape
+      // Map server team to teamDraft shape and cache move metadata
       const slots = resp.data.slots;
       const mapped = new Array(TEAM_SIZE).fill(null);
       slots.forEach((slot) => {
         const idx = slot.slot - 1;
         mapped[idx] = { pokemonId: slot.pokemon_id, moveIds: slot.move_ids.map((id) => Number(id)) };
+        if (slot.moves && Array.isArray(slot.moves)) {
+          if (!moveOptionsCache[slot.pokemon_id]) {
+            moveOptionsCache[slot.pokemon_id] = [];
+          }
+          slot.moves.forEach((m) => {
+            if (!moveOptionsCache[slot.pokemon_id].some((existing) => existing.id === Number(m.id))) {
+              moveOptionsCache[slot.pokemon_id].push({
+                id: Number(m.id),
+                display_name: m.display_name || m.move_name,
+                move_type: m.move_type,
+                category: m.category,
+                base_power: m.base_power,
+              });
+            }
+          });
+        }
       });
       enterTeamBuilder(mapped);
       builder.hidden = false;
@@ -132,8 +149,11 @@ async function renderEditTeam() {
       builder.hidden = true;
       return;
     }
+    if (err && err.name === 'ApiError' && (err.status === 401 || err.status === 403)) {
+      window.location.href = 'index.html';
+      return;
+    }
 
-    // Other errors
     nothingNotice.hidden = false;
     builder.hidden = true;
     nothingNotice.textContent = 'Unable to load your team: ' + (err?.message || 'Connection error');
@@ -353,7 +373,7 @@ async function renderMovePicker() {
   const mon = DemoData.getPokemonById(slot.pokemonId);
 
   document.getElementById('move-picker-mon-portrait').innerHTML = pokemonPortraitHTML(mon, 48);
-  document.getElementById('move-picker-mon-name').textContent = mon.name;
+  document.getElementById('move-picker-mon-name').textContent = mon ? mon.name : `Pokémon #${slot.pokemonId}`;
 
   const slotsContainer = document.getElementById('move-slots');
   slotsContainer.innerHTML = Array.from({ length: MOVES_PER_POKEMON })
@@ -384,17 +404,36 @@ async function renderMovePicker() {
   // Ensure we have move options from backend
   try {
     await ensureApiLoaded();
-    if (!moveOptionsCache[slot.pokemonId]) {
+    if (!moveOptionsCache[slot.pokemonId] || moveOptionsCache[slot.pokemonId].length < 10) {
       const resp = await window.Api.getMoveOptions(slot.pokemonId);
-      moveOptionsCache[slot.pokemonId] = resp.data.map((m) => ({ id: Number(m.id), display_name: m.display_name || m.move_name, move_type: m.move_type, category: m.category, base_power: m.base_power }));
+      if (resp && resp.data && Array.isArray(resp.data)) {
+        const existing = moveOptionsCache[slot.pokemonId] || [];
+        const newOptions = resp.data.map((m) => ({
+          id: Number(m.id),
+          display_name: m.display_name || m.move_name,
+          move_type: m.move_type,
+          category: m.category,
+          base_power: m.base_power,
+        }));
+        const combined = [...existing];
+        newOptions.forEach((opt) => {
+          if (!combined.some((c) => c.id === opt.id)) {
+            combined.push(opt);
+          }
+        });
+        moveOptionsCache[slot.pokemonId] = combined;
+      }
     }
   } catch (err) {
-    // Show connection error in the pool and disable adding moves
+    if (err && err.name === 'ApiError' && (err.status === 401 || err.status === 403)) {
+      window.location.href = 'index.html';
+      return;
+    }
     pool.innerHTML = `<div class="picker-empty">Unable to load move options: ${err?.message || 'Connection error'}</div>`;
     return;
   }
 
-  const options = moveOptionsCache[slot.pokemonId];
+  const options = moveOptionsCache[slot.pokemonId] || [];
 
   pool.innerHTML = options
     .map((move) => {
@@ -509,8 +548,8 @@ async function saveTeam() {
   const { valid } = validateTeam(teamDraft);
   if (!valid) return;
 
-  const trainer = AppSession.getActiveTrainer();
   const feedbackEl = document.getElementById('save-feedback');
+  feedbackEl.textContent = 'Saving team...';
 
   // Build payload expected by backend TeamCreate schema
   const payload = {
@@ -523,38 +562,65 @@ async function saveTeam() {
 
   try {
     await ensureApiLoaded();
+    let resp;
     if (currentSection === 'create-team') {
-      const resp = await window.Api.createTeam(payload);
-      feedbackEl.textContent = 'Team created on server.';
-      // populate teamDraft with server response
-      const slots = resp.data.slots || [];
-      const mapped = new Array(TEAM_SIZE).fill(null);
-      slots.forEach((s) => { mapped[s.slot - 1] = { pokemonId: s.pokemon_id, moveIds: s.move_ids.map(Number) }; });
-      teamDraft = mapped;
+      resp = await window.Api.createTeam(payload);
+      feedbackEl.textContent = 'Team created successfully!';
     } else if (currentSection === 'edit-team') {
-      const resp = await window.Api.updateTeam(payload);
-      feedbackEl.textContent = 'Team updated on server.';
-      const slots = resp.data.slots || [];
-      const mapped = new Array(TEAM_SIZE).fill(null);
-      slots.forEach((s) => { mapped[s.slot - 1] = { pokemonId: s.pokemon_id, moveIds: s.move_ids.map(Number) }; });
-      teamDraft = mapped;
+      resp = await window.Api.updateTeam(payload);
+      feedbackEl.textContent = 'Team updated successfully!';
     } else {
       feedbackEl.textContent = 'Unknown save context.';
       return;
     }
 
+    // Populate teamDraft and cache from authoritative server response
+    if (resp && resp.data && Array.isArray(resp.data.slots)) {
+      const slots = resp.data.slots;
+      const mapped = new Array(TEAM_SIZE).fill(null);
+      slots.forEach((s) => {
+        mapped[s.slot - 1] = { pokemonId: s.pokemon_id, moveIds: s.move_ids.map(Number) };
+        if (s.moves && Array.isArray(s.moves)) {
+          if (!moveOptionsCache[s.pokemon_id]) {
+            moveOptionsCache[s.pokemon_id] = [];
+          }
+          s.moves.forEach((m) => {
+            if (!moveOptionsCache[s.pokemon_id].some((existing) => existing.id === Number(m.id))) {
+              moveOptionsCache[s.pokemon_id].push({
+                id: Number(m.id),
+                display_name: m.display_name || m.move_name,
+                move_type: m.move_type,
+                category: m.category,
+                base_power: m.base_power,
+              });
+            }
+          });
+        }
+      });
+      teamDraft = mapped;
+    }
+
     renderTeamSlots();
     renderValidation();
 
-    // Re-render whichever of the two sections is active so Create Team
-    // immediately locks into "Team Already Exists" once a team is saved.
-    if (currentSection === 'create-team') renderCreateTeam();
-    if (currentSection === 'edit-team') renderEditTeam();
+    // Re-render views so Create Team locks into "Team Already Exists"
+    if (currentSection === 'create-team') {
+      await renderCreateTeam();
+    } else if (currentSection === 'edit-team') {
+      await renderEditTeam();
+    }
+
+    // Refresh Overview dashboard so roster preview stays synchronized
+    if (typeof loadTrainerDashboardData === 'function') {
+      loadTrainerDashboardData();
+    }
   } catch (err) {
-    // Surface backend validation messages where possible
     if (err && err.name === 'ApiError') {
-      const body = err.body;
-      const msg = body?.detail || err.message || 'Error saving team.';
+      if (err.status === 401 || err.status === 403) {
+        window.location.href = 'index.html';
+        return;
+      }
+      const msg = err.body?.detail || err.message || 'Error saving team.';
       feedbackEl.textContent = 'Save failed: ' + msg;
       return;
     }

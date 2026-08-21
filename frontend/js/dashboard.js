@@ -103,11 +103,12 @@ function initLogout() {
 // Ensure Api and Session are available when needed
 function _loadScript(src) {
   return new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${src}"]`);
+    const filename = src.split('/').pop();
+    const existing = document.querySelector(`script[src$="${filename}"]`);
     if (existing) {
+      if (existing.readyState === 'complete' || existing.readyState === 'loaded') return resolve();
       existing.addEventListener('load', () => resolve());
       existing.addEventListener('error', (e) => reject(e));
-      if (existing.readyState === 'complete' || existing.readyState === 'loaded') resolve();
       return;
     }
     const s = document.createElement('script');
@@ -120,8 +121,8 @@ function _loadScript(src) {
 }
 
 async function ensureApiLoaded() {
-  if (!window.Session) await _loadScript('/js/session.js');
-  if (!window.Api) await _loadScript('/js/api.js');
+  if (!window.Session) await _loadScript('js/session.js');
+  if (!window.Api) await _loadScript('js/api.js');
 }
 
 function renderTrainerChip(trainer) {
@@ -180,16 +181,7 @@ function renderTeamFromApi(team) {
   const hasTeamEl = document.getElementById('has-team-state');
   const roster = document.getElementById('roster-preview');
 
-  if (!team || !Array.isArray(team.slots) || team.slots.length === 0) {
-    if (noTeamEl) noTeamEl.hidden = false;
-    if (hasTeamEl) hasTeamEl.hidden = true;
-    if (roster) roster.innerHTML = '';
-    return;
-  }
-
-  // Determine completeness: all slots must have a pokemon
-  const isComplete = team.slots.length === 6 && team.slots.every((s) => s && s.pokemon);
-  if (!isComplete) {
+  if (!team || !Array.isArray(team.slots) || team.slots.length !== 6 || !team.slots.every((s) => s && s.pokemon)) {
     if (noTeamEl) noTeamEl.hidden = false;
     if (hasTeamEl) hasTeamEl.hidden = true;
     if (roster) roster.innerHTML = '';
@@ -202,15 +194,15 @@ function renderTeamFromApi(team) {
   roster.innerHTML = team.slots
     .map((slot) => {
       const p = slot.pokemon;
-      const moveList = (slot.moves || []).map((m) => m.display_name || m.move_name || m).join(', ');
+      const moveList = (slot.moves || []).map((m) => m.display_name || m.move_name || m).join(' · ');
       const types = [p.type1].concat(p.type2 ? [p.type2] : []);
-      // Use portrait helper with id/name so local asset fallback still works
-      const portraitHTML = pokemonPortraitHTML({ id: p.id, name: p.name }, 40);
+      const displayName = p.display_name || p.name;
+      const portraitHTML = pokemonPortraitHTML({ id: p.id, name: displayName }, 40);
       return `
         <div class="roster-card">
           <div class="mon-portrait">${portraitHTML}</div>
           <div>
-            <div class="mon-name">${p.name}</div>
+            <div class="mon-name">${displayName}</div>
             <div>${typePillsHTML(types)}</div>
             <div class="mon-moves">${moveList}</div>
           </div>
@@ -243,30 +235,29 @@ async function loadTrainerDashboardData() {
     renderStatRail(stats);
     renderLastBattle(stats.last_battle ?? null);
 
-    // Now load team (may be 404 if none exists)
+    // Now load team (may return 404 if trainer has no team yet)
     try {
       const teamResp = await window.Api.getTeam();
       if (teamResp && teamResp.data) {
         renderTeamFromApi(teamResp.data);
       } else {
-        // treat as no team
         if (noTeamEl) noTeamEl.hidden = false;
         if (hasTeamEl) hasTeamEl.hidden = true;
       }
     } catch (teamErr) {
       if (teamErr && teamErr.name === 'ApiError' && teamErr.status === 404) {
-        // No team yet
+        // No team yet — normal empty state
         if (noTeamEl) noTeamEl.hidden = false;
         if (hasTeamEl) hasTeamEl.hidden = true;
       } else if (teamErr && teamErr.name === 'ApiError' && (teamErr.status === 401 || teamErr.status === 403)) {
-        if (lastBattleEl) lastBattleEl.innerHTML = `<div class="error">Session expired. Please log in again.</div>`;
+        window.location.href = 'index.html';
       } else {
         if (lastBattleEl) lastBattleEl.innerHTML = `<div class="error">Unable to load team data.</div>`;
       }
     }
   } catch (err) {
     if (err && err.name === 'ApiError' && (err.status === 401 || err.status === 403)) {
-      if (lastBattleEl) lastBattleEl.innerHTML = `<div class="error">Session expired. Please log in again.</div>`;
+      window.location.href = 'index.html';
     } else {
       if (lastBattleEl) lastBattleEl.innerHTML = `<div class="error">Unable to load trainer data</div>`;
     }

@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   // Small API client wrapper for the FastAPI backend.
   // Exposes window.Api with methods for auth, trainer, team, pokemon and leaderboard.
 
@@ -13,8 +13,10 @@
   }
 
   const ApiConfig = {
-    // Default - change here to switch between 127.0.0.1 and localhost
-    baseUrl: 'http://127.0.0.1:8000',
+    // Dynamically match hostname so localhost:5500 calls localhost:8000 and 127.0.0.1:5500 calls 127.0.0.1:8000
+    baseUrl: (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost')
+      ? 'http://localhost:8000'
+      : 'http://127.0.0.1:8000',
   };
 
   function setBaseUrl(url) {
@@ -26,12 +28,13 @@
 
     const opts = {
       method: method.toUpperCase(),
+      credentials: 'include',
       headers: {
         ...headers,
       },
     };
 
-    // Attach token from session if available
+    // Attach token from session if available in memory
     if (window.Session && typeof window.Session.getToken === 'function') {
       const token = window.Session.getToken();
       if (token) {
@@ -99,12 +102,20 @@
       return fetchWrapper('POST', '/auth/login', { form: true, body: { username, password } });
     },
 
+    async logout() {
+      return fetchWrapper('POST', '/auth/logout');
+    },
+
     async getCurrentUser() {
       return fetchWrapper('GET', '/auth/me');
     },
 
     // TRAINER
     async getDashboard() {
+      return fetchWrapper('GET', '/trainer/dashboard');
+    },
+
+    async getTrainerDashboard() {
       return fetchWrapper('GET', '/trainer/dashboard');
     },
 
@@ -126,6 +137,10 @@
     },
 
     // POKEMON
+    async getAllPokemon() {
+      return fetchWrapper('GET', '/pokemon');
+    },
+
     async searchPokemon({ q = null, pokemon_id = null, limit = 10 } = {}) {
       const params = new URLSearchParams();
       if (q !== null) params.append('q', q);
@@ -146,6 +161,39 @@
     // LEADERBOARD
     async getLeaderboard() {
       return fetchWrapper('GET', '/leaderboard');
+    },
+
+    // BATTLE
+    async startBattle() {
+      return fetchWrapper('POST', '/battle/start');
+    },
+
+    async startMatch(battleId) {
+      return fetchWrapper('POST', `/battle/${encodeURIComponent(battleId)}/start-match`);
+    },
+
+    async selectBattlePokemon(battleId, trainerSlot) {
+      return fetchWrapper('POST', `/battle/${encodeURIComponent(battleId)}/select-pokemon`, {
+        body: { trainer_slot: Number(trainerSlot) },
+      });
+    },
+
+    async backToSelection(battleId) {
+      return fetchWrapper('POST', `/battle/${encodeURIComponent(battleId)}/back-to-selection`);
+    },
+
+    async continueBattle(battleId) {
+      return fetchWrapper('POST', `/battle/${encodeURIComponent(battleId)}/continue`);
+    },
+
+    async executeMove(battleId, moveId) {
+      return fetchWrapper('POST', `/battle/${encodeURIComponent(battleId)}/move`, {
+        body: { move_id: Number(moveId) },
+      });
+    },
+
+    async exitBattle(battleId) {
+      return fetchWrapper('POST', `/battle/${encodeURIComponent(battleId)}/exit`);
     },
   };
 

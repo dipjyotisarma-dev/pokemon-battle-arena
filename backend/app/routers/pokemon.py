@@ -7,6 +7,7 @@ from app.schemas.pokemon import (
     PokemonResponse,
 )
 from app.services.pokemon_service import (
+    get_all_pokemon,
     get_pokemon,
     get_pokemon_moves,
     search_pokemon,
@@ -17,6 +18,20 @@ router = APIRouter(
     prefix="/pokemon",
     tags=["Pokémon"],
 )
+
+
+# List all Pokémon
+@router.get(
+    "",
+    response_model=list[PokemonResponse],
+)
+def list_all_pokemon(
+    db: Session = Depends(get_db),
+):
+    """
+    Retrieve the full list of Pokémon for the Pokédex reference.
+    """
+    return get_all_pokemon(db)
 
 
 # Search Pokémon

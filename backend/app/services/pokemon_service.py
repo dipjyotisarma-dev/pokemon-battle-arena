@@ -77,3 +77,16 @@ def get_pokemon_moves(
         .order_by(Move.display_name)
         .all()
     )
+
+
+def get_all_pokemon(
+    db: Session,
+) -> list[Pokemon]:
+    """
+    Retrieve all Pokémon ordered by Pokédex ID.
+    """
+    return (
+        db.query(Pokemon)
+        .order_by(Pokemon.id)
+        .all()
+    )

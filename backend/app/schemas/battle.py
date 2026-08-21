@@ -17,6 +17,7 @@ class BattlePokemonResponse(BaseModel):
     type1: str
     type2: str | None
     hp: int
+    battle_max_hp: int | None = None
     attack: int
     defense: int
     special_attack: int
@@ -38,6 +39,7 @@ class BattleEventResponse(BaseModel):
     category: str | None = None
     base_power: int | None = None
     damage: int | None = None
+    effectiveness: str | None = None
     message: str | None = None
 
 

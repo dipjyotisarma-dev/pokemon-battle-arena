@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.db.database import get_db
@@ -43,6 +43,8 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
             detail=str(exc),
         )
 
+from fastapi.responses import JSONResponse
+
 # Login
 @router.post(
     "/login",
@@ -51,7 +53,7 @@ def login(
     form_data: OAuth2PasswordRequestForm = Depends(),
     db: Session = Depends(get_db)):
     """
-    Authenticate a user and return a JWT access token.
+    Authenticate a user, return a JWT access token, and set an HttpOnly cookie.
     """
     user = authenticate_user(
         db=db,
@@ -68,8 +70,41 @@ def login(
             },
         )
 
-    return create_user_token(user)
+    token = create_user_token(user)
 
+    # Return JSONResponse directly with HttpOnly cookie attached
+    json_response = JSONResponse(
+        content={
+            "access_token": token.access_token,
+            "token_type": token.token_type,
+        }
+    )
+    json_response.set_cookie(
+        key="access_token",
+        value=token.access_token,
+        httponly=True,
+        samesite="lax",
+        path="/"
+    )
+
+    return json_response
+
+
+# Logout
+@router.post(
+    "/logout",
+    status_code=status.HTTP_200_OK,
+)
+def logout():
+    """
+    Clear the authentication cookie.
+    """
+    json_response = JSONResponse(content={"message": "Logged out successfully"})
+    json_response.delete_cookie(
+        key="access_token",
+        path="/"
+    )
+    return json_response
 
 
 @router.get(
