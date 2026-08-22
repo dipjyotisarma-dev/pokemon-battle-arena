@@ -309,14 +309,13 @@ async function beginMatch() {
 function renderOpponentIntroCard(mon) {
   const types = getPokemonTypes(mon);
   const displayName = mon.display_name || mon.name;
-  const combatHp = mon.battle_max_hp || mon.hp;
 
   document.getElementById('opponent-intro-card').innerHTML = `
     <div class="mon-portrait">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 96)}</div>
     <div class="mon-name">${displayName}</div>
     <div style="margin-bottom: var(--space-2);">${typePillsHTML(types)}</div>
     <div class="mon-intro-stats">
-      <div class="cell"><span class="l">HP</span><span class="v">${combatHp}</span></div>
+      <div class="cell"><span class="l">HP</span><span class="v">${mon.hp}</span></div>
       <div class="cell"><span class="l">Attack</span><span class="v">${mon.attack}</span></div>
       <div class="cell"><span class="l">Defense</span><span class="v">${mon.defense}</span></div>
       <div class="cell"><span class="l">Sp. Atk</span><span class="v">${mon.special_attack}</span></div>
@@ -369,14 +368,13 @@ function showPlayerSelectScreen() {
 function matchupCardHTML(mon) {
   const types = getPokemonTypes(mon);
   const displayName = mon.display_name || mon.name;
-  const combatHp = mon.battle_max_hp || mon.hp;
   return `
     <div class="matchup-card card">
       <div class="mon-portrait">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 80)}</div>
       <div class="mon-name">${displayName}</div>
       <div style="margin-bottom: var(--space-2);">${typePillsHTML(types)}</div>
       <div class="mon-intro-stats" style="margin-top: var(--space-3);">
-        <div class="cell"><span class="l">HP</span><span class="v">${combatHp}</span></div>
+        <div class="cell"><span class="l">HP</span><span class="v">${mon.hp}</span></div>
         <div class="cell"><span class="l">Speed</span><span class="v">${mon.speed}</span></div>
         <div class="cell"><span class="l">Attack</span><span class="v">${mon.attack}</span></div>
       </div>

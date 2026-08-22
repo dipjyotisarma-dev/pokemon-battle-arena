@@ -124,9 +124,10 @@ const DemoData = (() => {
     return s.hp + s.atk + s.def + s.spa + s.spd + s.spe;
   }
 
-  /** Battle HP per the established rule: 5 × base HP. */
+  /** Battle HP: (3 * base HP) + floor(BST / 2). */
   function getBattleHP(pokemonEntry) {
-    return pokemonEntry.stats.hp * 5;
+    const bst = getBST(pokemonEntry);
+    return (3 * pokemonEntry.stats.hp) + Math.floor(bst / 2);
   }
 
   /**

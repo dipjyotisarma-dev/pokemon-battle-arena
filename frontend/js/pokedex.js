@@ -18,7 +18,7 @@ function getPokemonTypes(p) {
 
 function renderDexRow(pokemonEntry) {
   const bst = pokemonEntry.bst;
-  const battleHP = pokemonEntry.hp * 5;
+  const battleHP = (3 * pokemonEntry.hp) + Math.floor(pokemonEntry.bst / 2);
   const types = getPokemonTypes(pokemonEntry);
   const displayName = pokemonEntry.display_name || pokemonEntry.name;
 
@@ -147,7 +147,7 @@ async function openDexDetail(pokemonId) {
 
   const displayName = mon.display_name || mon.name;
   const types = getPokemonTypes(mon);
-  const battleHP = mon.hp * 5;
+  const battleHP = (3 * mon.hp) + Math.floor(mon.bst / 2);
 
   const portraitEl = document.getElementById('dex-detail-portrait');
   const idEl = document.getElementById('dex-detail-id');
