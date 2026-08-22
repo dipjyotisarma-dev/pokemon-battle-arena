@@ -14,81 +14,79 @@
     <div class="battle-bg" aria-hidden="true"></div>
     <div class="battle-scrim" aria-hidden="true"></div>
 
-    <button class="btn btn-danger exit-battle-btn" type="button">Exit Battle</button>
-
-    <!-- Secondary record of every combat event (primary feedback is the center message) -->
-    <aside class="battle-log-panel" id="battle-log-panel" hidden aria-label="Battle log">
-      <h4>Battle Log</h4>
-      <div id="battle-log-list"></div>
-    </aside>
-
-    <!-- Compact team trackers on arena screen -->
-    <aside class="team-tracker-panel team-tracker-left" id="trainer-team-tracker" hidden aria-label="Trainer team status">
-      <h4>Trainer Team</h4>
-      <div class="team-tracker-list" id="trainer-tracker-list"></div>
-    </aside>
-
-    <aside class="team-tracker-panel team-tracker-right" id="opponent-team-tracker" hidden aria-label="Opponent team status">
-      <h4>Opponent Team</h4>
-      <div class="team-tracker-list" id="opponent-tracker-list"></div>
-    </aside>
+    <!-- Topbar for pre-arena / general navigation -->
+    <header class="battle-topbar" id="battle-topbar">
+      <div class="battle-topbar-brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <span class="topbar-title">Pokémon Battle Arena</span>
+      </div>
+      <button class="btn btn-danger btn-sm exit-battle-btn" type="button" aria-label="Exit battle session">✕ Exit Battle</button>
+    </header>
 
     <main id="main" tabindex="-1">
       <!-- ============================================================
-           SCREEN: TEAM REVEAL
+           SCREEN 1: TEAM REVEAL
            ============================================================ -->
       <section class="battle-screen" data-screen="reveal">
-        <span class="eyebrow">Arena Entry</span>
+        <span class="eyebrow">Matchmaking Roster</span>
         <h2>Teams Entering the Arena</h2>
 
         <div class="reveal-columns">
-          <div class="reveal-side side-player">
-            <h3>Your Team</h3>
+          <div class="reveal-side side-player card">
+            <div class="reveal-side-header">
+              <span class="eyebrow">Your Roster</span>
+              <h3>Trainer Team</h3>
+            </div>
             <div class="reveal-grid" id="reveal-player-grid"></div>
           </div>
-          <div class="reveal-vs">VS</div>
-          <div class="reveal-side side-opponent">
-            <h3>Opponent Team</h3>
+
+          <div class="reveal-vs-badge" aria-hidden="true">VS</div>
+
+          <div class="reveal-side side-opponent card">
+            <div class="reveal-side-header">
+              <span class="eyebrow">Challenger</span>
+              <h3>Opponent Team</h3>
+            </div>
             <div class="reveal-grid" id="reveal-opponent-grid"></div>
           </div>
         </div>
 
-        <button class="btn btn-primary" type="button" id="start-battle-btn" hidden>Start Battle</button>
+        <button class="btn btn-primary reticle" type="button" id="start-battle-btn" hidden>Start Battle</button>
       </section>
 
       <!-- ============================================================
-           SCREEN: MATCH INTRO
+           SCREEN 2: MATCH INTRO
            ============================================================ -->
       <section class="battle-screen" data-screen="match-intro" hidden>
         <div class="match-banner" id="match-intro-banner">Match 1</div>
         <div class="match-subbanner" id="match-intro-sub"></div>
 
-        <div class="mon-intro-card" id="opponent-intro-card" hidden></div>
+        <div class="mon-intro-card card" id="opponent-intro-card" hidden></div>
 
-        <button class="btn btn-primary" type="button" id="choose-pokemon-btn" style="margin-top: var(--space-6);" hidden>
+        <button class="btn btn-primary reticle" type="button" id="choose-pokemon-btn" style="margin-top: var(--space-6);" hidden>
           Choose Your Pokémon
         </button>
       </section>
 
       <!-- ============================================================
-           SCREEN: TRAINER POKÉMON SELECTION
+           SCREEN 3: TRAINER POKÉMON SELECTION
            ============================================================ -->
       <section class="battle-screen" data-screen="player-select" hidden>
-        <span class="eyebrow">Your Turn to Choose</span>
+        <span class="eyebrow">Tactical Selection</span>
         <h2>Select Your Pokémon</h2>
         <div class="select-grid" id="select-grid"></div>
       </section>
 
       <!-- ============================================================
-           SCREEN: MATCHUP CONFIRMATION
+           SCREEN 4: MATCHUP CONFIRMATION
            ============================================================ -->
       <section class="battle-screen" data-screen="matchup" hidden>
-        <span class="eyebrow">Confirm Matchup</span>
+        <span class="eyebrow">Tactical Face-Off</span>
         <h2>Ready to Battle?</h2>
 
         <div class="matchup-grid">
           <div id="matchup-player-card"></div>
-          <div class="matchup-vs">VS</div>
+          <div class="matchup-vs-badge">VS</div>
           <div id="matchup-opponent-card"></div>
         </div>
 
@@ -96,83 +94,157 @@
 
         <div class="matchup-actions" style="margin-top: var(--space-6);">
           <button class="btn btn-secondary" type="button" id="matchup-back-btn">✕ Back</button>
-          <button class="btn btn-primary" type="button" id="matchup-continue-btn">Continue</button>
+          <button class="btn btn-primary reticle" type="button" id="matchup-continue-btn">Continue to Arena</button>
         </div>
       </section>
 
       <!-- ============================================================
-           SCREEN: ARENA (main combat)
+           SCREEN 5: ARENA (Main 3-Column Combat Interface)
            ============================================================ -->
-      <section class="battle-screen" data-screen="arena" hidden>
-        <div class="arena-stage">
-          <div class="combatant opponent" id="opponent-combatant">
-            <div class="mon-portrait" id="opponent-portrait"></div>
-            <div class="mon-name" id="opponent-name-tag"></div>
-            <div class="hp-panel">
-              <div class="hp-panel-top">
-                <span class="mon-name-sm" id="opponent-hp-name"></span>
-                <span class="hp-numbers" id="opponent-hp-numbers"></span>
+      <section class="battle-screen arena-screen" data-screen="arena" hidden>
+        <div class="arena-desktop-grid">
+          <!-- LEFT COLUMN: Battle Log + Trainer Tracker -->
+          <div class="arena-sidebar arena-sidebar-left">
+            <aside class="battle-log-panel card" id="battle-log-panel" aria-label="Battle log">
+              <div class="panel-header">
+                <span class="eyebrow">Combat Feed</span>
+                <h4>Battle Log</h4>
               </div>
-              <div class="hp-bar-track" id="opponent-hp-track" data-state="healthy">
-                <div class="hp-bar-fill" id="opponent-hp-fill" style="width:100%;"></div>
+              <div id="battle-log-list"></div>
+            </aside>
+
+            <aside class="team-tracker-panel card" id="trainer-team-tracker" aria-label="Trainer team status">
+              <div class="panel-header">
+                <span class="eyebrow">Your Team</span>
+                <h4>Trainer Team</h4>
               </div>
-              <span class="hp-state-label" id="opponent-hp-state-label">Healthy</span>
+              <div class="team-tracker-list" id="trainer-tracker-list"></div>
+            </aside>
+          </div>
+
+          <!-- CENTER COLUMN: Arena Battlefield + Move Selection -->
+          <div class="arena-main-column">
+            <!-- Battlefield Stage -->
+            <div class="arena-stage">
+              <!-- Opponent Combatant -->
+              <div class="combatant opponent" id="opponent-combatant">
+                <div class="hp-panel card" id="opponent-hp-hud">
+                  <div class="hp-panel-top">
+                    <span class="mon-name-sm" id="opponent-hp-name"></span>
+                    <span class="hp-numbers" id="opponent-hp-numbers"></span>
+                  </div>
+                  <div class="hp-bar-track" id="opponent-hp-track" data-state="healthy">
+                    <div class="hp-bar-fill" id="opponent-hp-fill" style="width:100%;"></div>
+                  </div>
+                  <div class="hp-panel-bot">
+                    <span class="hp-state-label" id="opponent-hp-state-label">Healthy</span>
+                  </div>
+                </div>
+                <div class="mon-stage-spot">
+                  <div class="mon-platform-shadow"></div>
+                  <div class="mon-portrait" id="opponent-portrait"></div>
+                </div>
+                <div class="mon-name-tag" id="opponent-name-tag"></div>
+              </div>
+
+              <!-- Center Announcement / Countdown -->
+              <div class="center-message" id="center-message">
+                <div class="line" id="center-line-main"></div>
+                <div class="line damage" id="center-line-damage"></div>
+              </div>
+
+              <!-- Trainer Combatant -->
+              <div class="combatant player" id="player-combatant">
+                <div class="mon-stage-spot">
+                  <div class="mon-platform-shadow"></div>
+                  <div class="mon-portrait" id="player-portrait"></div>
+                </div>
+                <div class="mon-name-tag" id="player-name-tag"></div>
+                <div class="hp-panel card" id="player-hp-hud">
+                  <div class="hp-panel-top">
+                    <span class="mon-name-sm" id="player-hp-name"></span>
+                    <span class="hp-numbers" id="player-hp-numbers"></span>
+                  </div>
+                  <div class="hp-bar-track" id="player-hp-track" data-state="healthy">
+                    <div class="hp-bar-fill" id="player-hp-fill" style="width:100%;"></div>
+                  </div>
+                  <div class="hp-panel-bot">
+                    <span class="hp-state-label" id="player-hp-state-label">Healthy</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Move Selection Panel -->
+            <div class="move-panel-container">
+              <div class="move-panel" id="move-panel" hidden></div>
             </div>
           </div>
 
-          <div class="center-message">
-            <div class="line" id="center-line-main"></div>
-            <div class="line damage" id="center-line-damage"></div>
-          </div>
-
-          <div class="combatant player" id="player-combatant">
-            <div class="hp-panel">
-              <div class="hp-panel-top">
-                <span class="mon-name-sm" id="player-hp-name"></span>
-                <span class="hp-numbers" id="player-hp-numbers"></span>
-              </div>
-              <div class="hp-bar-track" id="player-hp-track" data-state="healthy">
-                <div class="hp-bar-fill" id="player-hp-fill" style="width:100%;"></div>
-              </div>
-              <span class="hp-state-label" id="player-hp-state-label">Healthy</span>
+          <!-- RIGHT COLUMN: Exit Action + Opponent Tracker -->
+          <div class="arena-sidebar arena-sidebar-right">
+            <div class="arena-exit-wrap">
+              <button class="btn btn-danger btn-block exit-battle-btn" type="button">✕ Exit Battle</button>
             </div>
-            <div class="mon-portrait" id="player-portrait"></div>
-            <div class="mon-name" id="player-name-tag"></div>
+
+            <aside class="team-tracker-panel card" id="opponent-team-tracker" aria-label="Opponent team status">
+              <div class="panel-header">
+                <span class="eyebrow">Enemy Roster</span>
+                <h4>Opponent Team</h4>
+              </div>
+              <div class="team-tracker-list" id="opponent-tracker-list"></div>
+            </aside>
           </div>
         </div>
-
-        <div class="move-panel" id="move-panel" hidden></div>
       </section>
 
       <!-- ============================================================
-           SCREEN: MATCH SUMMARY
+           SCREEN 6: MATCH SUMMARY
            ============================================================ -->
       <section class="battle-screen" data-screen="match-summary" hidden>
-        <span class="eyebrow">Match Complete</span>
-        <div class="summary-panel">
+        <div class="summary-panel card">
+          <span class="eyebrow">Match Outcome</span>
           <div class="summary-result" id="summary-result">Win</div>
           <div class="summary-stat-grid">
-            <div class="cell"><span class="v" id="summary-match-number">1</span><span class="l">Match</span></div>
-            <div class="cell"><span class="v" id="summary-points">+0</span><span class="l">Points Earned</span></div>
+            <div class="cell">
+              <span class="l">Match</span>
+              <span class="v" id="summary-match-number">1</span>
+            </div>
+            <div class="cell">
+              <span class="l">Points Earned</span>
+              <span class="v" id="summary-points">+0</span>
+            </div>
           </div>
-          <button class="btn btn-primary btn-block" type="button" id="next-match-btn">Next Match</button>
+          <button class="btn btn-primary btn-block reticle" type="button" id="next-match-btn">Next Match</button>
         </div>
       </section>
 
       <!-- ============================================================
-           SCREEN: SESSION SUMMARY
+           SCREEN 7: SESSION SUMMARY
            ============================================================ -->
       <section class="battle-screen" data-screen="session-summary" hidden>
-        <span class="eyebrow">Arena Session Complete</span>
-        <div class="summary-panel">
-          <h2 style="margin-bottom: var(--space-5);">Session Summary</h2>
-          <div class="summary-stat-grid">
-            <div class="cell"><span class="v" id="session-matches">0</span><span class="l">Completed Matches</span></div>
-            <div class="cell"><span class="v" id="session-wins">0</span><span class="l">Wins</span></div>
-            <div class="cell"><span class="v" id="session-points">+0</span><span class="l">Points Earned</span></div>
-            <div class="cell"><span class="v" id="session-rank">—</span><span class="l">Current Rank</span></div>
+        <div class="summary-panel card session-panel">
+          <span class="eyebrow">Session Complete</span>
+          <h2>Arena Summary</h2>
+          <div class="summary-stat-grid four-col">
+            <div class="cell">
+              <span class="l">Matches</span>
+              <span class="v" id="session-matches">0</span>
+            </div>
+            <div class="cell">
+              <span class="l">Wins</span>
+              <span class="v" id="session-wins">0</span>
+            </div>
+            <div class="cell">
+              <span class="l">Total Points</span>
+              <span class="v" id="session-points">+0</span>
+            </div>
+            <div class="cell">
+              <span class="l">Current Rank</span>
+              <span class="v" id="session-rank">—</span>
+            </div>
           </div>
-          <button class="btn btn-primary btn-block" type="button" id="return-to-dashboard-btn">Return to Dashboard</button>
+          <button class="btn btn-primary btn-block reticle" type="button" id="return-to-dashboard-btn">Return to Dashboard</button>
         </div>
       </section>
     </main>
@@ -188,7 +260,7 @@
         <button class="modal-close" type="button" data-close-modal aria-label="Close">✕</button>
       </div>
 
-      <p style="margin-bottom: var(--space-5);">
+      <p style="margin-bottom: var(--space-5); color: var(--text-muted);">
         Are you sure you want to exit? The current match will be discarded and will not count toward your points.
       </p>
 

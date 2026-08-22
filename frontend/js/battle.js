@@ -312,16 +312,16 @@ function renderOpponentIntroCard(mon) {
   const combatHp = mon.battle_max_hp || mon.hp;
 
   document.getElementById('opponent-intro-card').innerHTML = `
-    <div class="mon-portrait">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 88)}</div>
+    <div class="mon-portrait">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 96)}</div>
     <div class="mon-name">${displayName}</div>
-    <div>${typePillsHTML(types)}</div>
+    <div style="margin-bottom: var(--space-2);">${typePillsHTML(types)}</div>
     <div class="mon-intro-stats">
-      <div class="cell"><span class="v">${combatHp}</span><span class="l">HP</span></div>
-      <div class="cell"><span class="v">${mon.attack}</span><span class="l">Attack</span></div>
-      <div class="cell"><span class="v">${mon.defense}</span><span class="l">Defense</span></div>
-      <div class="cell"><span class="v">${mon.special_attack}</span><span class="l">Sp. Atk</span></div>
-      <div class="cell"><span class="v">${mon.special_defense}</span><span class="l">Sp. Def</span></div>
-      <div class="cell"><span class="v">${mon.speed}</span><span class="l">Speed</span></div>
+      <div class="cell"><span class="l">HP</span><span class="v">${combatHp}</span></div>
+      <div class="cell"><span class="l">Attack</span><span class="v">${mon.attack}</span></div>
+      <div class="cell"><span class="l">Defense</span><span class="v">${mon.defense}</span></div>
+      <div class="cell"><span class="l">Sp. Atk</span><span class="v">${mon.special_attack}</span></div>
+      <div class="cell"><span class="l">Sp. Def</span><span class="v">${mon.special_defense}</span></div>
+      <div class="cell"><span class="l">Speed</span><span class="v">${mon.speed}</span></div>
     </div>
   `;
 }
@@ -343,11 +343,13 @@ function showPlayerSelectScreen() {
       const types = fullMon ? getPokemonTypes(fullMon) : [];
 
       return `
-        <button class="select-card" type="button" data-slot="${teamMember.slot}" ${!isAvailable ? 'disabled' : ''}>
-          <div class="mon-portrait">${pokemonPortraitHTML({ id: teamMember.id, name: displayName }, 48)}</div>
-          <div class="mon-name">${displayName}</div>
-          <div>${typePillsHTML(types)}</div>
-          ${!isAvailable ? '<div class="used-tag">Already Battled</div>' : ''}
+        <button class="select-card card reticle" type="button" data-slot="${teamMember.slot}" ${!isAvailable ? 'disabled' : ''}>
+          <div class="mon-portrait">${pokemonPortraitHTML({ id: teamMember.id, name: displayName }, 56)}</div>
+          <div>
+            <div class="mon-name">${displayName}</div>
+            <div>${typePillsHTML(types)}</div>
+          </div>
+          ${!isAvailable ? '<div class="used-tag">Already Battled</div>' : '<div class="select-hint" style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-faint);text-transform:uppercase;margin-top:6px;">Available</div>'}
         </button>
       `;
     })
@@ -367,15 +369,16 @@ function showPlayerSelectScreen() {
 function matchupCardHTML(mon) {
   const types = getPokemonTypes(mon);
   const displayName = mon.display_name || mon.name;
+  const combatHp = mon.battle_max_hp || mon.hp;
   return `
-    <div class="mon-intro-card" style="margin-top:0;">
-      <div class="mon-portrait">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 88)}</div>
+    <div class="matchup-card card">
+      <div class="mon-portrait">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 80)}</div>
       <div class="mon-name">${displayName}</div>
-      <div>${typePillsHTML(types)}</div>
-      <div class="mon-intro-stats">
-        <div class="cell"><span class="v">${mon.attack}</span><span class="l">Attack</span></div>
-        <div class="cell"><span class="v">${mon.defense}</span><span class="l">Defense</span></div>
-        <div class="cell"><span class="v">${mon.speed}</span><span class="l">Speed</span></div>
+      <div style="margin-bottom: var(--space-2);">${typePillsHTML(types)}</div>
+      <div class="mon-intro-stats" style="margin-top: var(--space-3);">
+        <div class="cell"><span class="l">HP</span><span class="v">${combatHp}</span></div>
+        <div class="cell"><span class="l">Speed</span><span class="v">${mon.speed}</span></div>
+        <div class="cell"><span class="l">Attack</span><span class="v">${mon.attack}</span></div>
       </div>
     </div>
   `;
@@ -612,7 +615,7 @@ function renderMovePanel() {
     .map((move) => {
       const moveName = move.display_name || move.move_name;
       return `
-        <button class="move-btn" type="button" data-move-id="${move.id}">
+        <button class="move-btn reticle" type="button" data-move-id="${move.id}">
           <div class="move-name">${moveName}</div>
           <div class="move-meta">
             <span class="type-pill" data-type="${move.move_type}">${move.move_type}</span>
