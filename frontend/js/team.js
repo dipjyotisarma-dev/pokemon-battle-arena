@@ -1,9 +1,9 @@
 /* ============================================================
    TEAM BUILDER
-   (Modified to integrate with backend API for Create/Edit/Load/Save/Move Options)
-   Note: preserves existing DOM structure and UX. Uses window.Api and window.Session
-   created in Phase 1. If API is unreachable, shows connection error messages and
-   does not silently fallback to DemoData for team persistence.
+   (Integrated with FastAPI backend for Pokémon Catalog, Create,
+   Edit, Load, Save, and Move Options)
+   Note: preserves existing DOM structure and UX. Uses window.Api and window.Session.
+   No mock data or browser storage is used.
    ============================================================ */
 
 const TEAM_SIZE = 6;
@@ -12,6 +12,14 @@ const MOVES_PER_POKEMON = 4;
 /** @type {(null | {pokemonId:number, moveIds:number[]})[]} */
 let teamDraft = new Array(TEAM_SIZE).fill(null);
 let activeSlotIndex = null;
+
+// In-memory Pokémon catalog loaded from backend GET /pokemon
+/** @type {any[]} */
+let pokemonCatalog = [];
+/** @type {Record<number, any>} */
+let pokemonCatalogById = {};
+let pokemonCatalogLoaded = false;
+let pokemonCatalogPromise = null;
 
 // Cache move options per pokemon id (from GET /team/{pokemon_id}/move-options)
 const moveOptionsCache = {};
@@ -41,7 +49,73 @@ async function ensureApiLoaded() {
   if (!window.Api) await _loadScript('js/api.js');
 }
 
-// Helper to get display name for a move id, preferring cached moveOptions then DemoData
+function formatTypeName(t) {
+  if (!t) return '';
+  const s = String(t).trim();
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+function getPokemonTypes(p) {
+  if (!p) return [];
+  const raw = [];
+  if (Array.isArray(p.types) && p.types.length > 0) {
+    p.types.forEach((t) => raw.push(t));
+  } else {
+    if (p.type1) raw.push(p.type1);
+    if (p.type2) raw.push(p.type2);
+  }
+  return raw.map(formatTypeName);
+}
+
+function getPokemonDisplayName(p) {
+  if (!p) return '';
+  return p.display_name || p.name || '';
+}
+
+function isRestrictedCategory(pokemonEntry) {
+  if (!pokemonEntry) return false;
+  const cat = String(pokemonEntry.pokemon_category || pokemonEntry.category || '').toLowerCase().trim();
+  return cat === 'legendary' || cat === 'mythical' || cat === 'ultra_beast' || cat === 'ultra beast';
+}
+
+async function ensurePokemonCatalogLoaded() {
+  if (pokemonCatalogLoaded && pokemonCatalog.length > 0) return pokemonCatalog;
+  if (pokemonCatalogPromise) return pokemonCatalogPromise;
+
+  pokemonCatalogPromise = (async () => {
+    await ensureApiLoaded();
+    const resp = await window.Api.getAllPokemon();
+    if (resp && resp.data && Array.isArray(resp.data)) {
+      pokemonCatalog = resp.data.map((p) => ({
+        ...p,
+        types: getPokemonTypes(p),
+        name: getPokemonDisplayName(p),
+      }));
+      pokemonCatalogById = {};
+      pokemonCatalog.forEach((p) => {
+        pokemonCatalogById[p.id] = p;
+      });
+      pokemonCatalogLoaded = true;
+      initPokemonPickerTypeOptions();
+      return pokemonCatalog;
+    }
+    throw new Error('Failed to load Pokémon catalog from server.');
+  })();
+
+  try {
+    const res = await pokemonCatalogPromise;
+    return res;
+  } finally {
+    pokemonCatalogPromise = null;
+  }
+}
+
+function getPokemonById(id) {
+  const numId = Number(id);
+  return pokemonCatalogById[numId] || null;
+}
+
+// Helper to get display name for a move id from cached moveOptions or slot metadata
 function getMoveName(moveId, pokemonId) {
   try {
     const idNum = Number(moveId);
@@ -49,8 +123,6 @@ function getMoveName(moveId, pokemonId) {
       const m = moveOptionsCache[pokemonId].find((mo) => mo.id === idNum);
       if (m) return m.display_name || m.move_name || String(idNum);
     }
-    const demoMove = typeof DemoData !== 'undefined' ? DemoData.getMoveById(idNum) : null;
-    if (demoMove) return demoMove.name;
     return String(moveId);
   } catch (e) {
     return String(moveId);
@@ -75,6 +147,7 @@ async function renderCreateTeam() {
   // Check backend for existing team
   try {
     await ensureApiLoaded();
+    await ensurePokemonCatalogLoaded();
     const resp = await window.Api.getTeam();
     // If we get here, trainer already has a team
     existsNotice.hidden = false;
@@ -113,6 +186,7 @@ async function renderEditTeam() {
 
   try {
     await ensureApiLoaded();
+    await ensurePokemonCatalogLoaded();
     const resp = await window.Api.getTeam();
     if (resp && resp.data && resp.data.slots) {
       // Map server team to teamDraft shape and cache move metadata
@@ -174,6 +248,7 @@ function enterTeamBuilder(initialDraft) {
    ============================================================ */
 function renderTeamSlots() {
   const grid = document.getElementById('team-slot-grid');
+  if (!grid) return;
   grid.innerHTML = teamDraft
     .map((slot, index) => {
       if (!slot) {
@@ -185,7 +260,9 @@ function renderTeamSlots() {
         `;
       }
 
-      const mon = DemoData.getPokemonById(slot.pokemonId);
+      const mon = getPokemonById(slot.pokemonId);
+      const displayName = mon ? (mon.display_name || mon.name) : `Pokémon #${slot.pokemonId}`;
+      const types = mon ? getPokemonTypes(mon) : [];
       const moveCount = slot.moveIds.length;
       const moveSummaryClass = moveCount === MOVES_PER_POKEMON ? '' : 'incomplete';
       const moveSummaryText =
@@ -196,10 +273,10 @@ function renderTeamSlots() {
       return `
         <button class="team-slot slot-filled reticle" type="button" data-slot="${index}">
           <div class="slot-top">
-            <div class="mon-portrait">${pokemonPortraitHTML(mon, 40)}</div>
+            <div class="mon-portrait">${pokemonPortraitHTML({ id: slot.pokemonId, name: displayName }, 40)}</div>
             <div>
-              <div class="mon-name">${mon.name}</div>
-              <div>${typePillsHTML(mon.types)}</div>
+              <div class="mon-name">${displayName}</div>
+              <div>${typePillsHTML(types)}</div>
             </div>
           </div>
           <div class="move-summary ${moveSummaryClass}">${moveSummaryText}</div>
@@ -222,8 +299,9 @@ function renderTeamSlots() {
    ============================================================ */
 function openPokemonEditModal(index) {
   activeSlotIndex = index;
-  const mon = DemoData.getPokemonById(teamDraft[index].pokemonId);
-  document.getElementById('pokemon-action-title').textContent = mon.name;
+  const mon = getPokemonById(teamDraft[index].pokemonId);
+  const displayName = mon ? (mon.display_name || mon.name) : `Pokémon #${teamDraft[index].pokemonId}`;
+  document.getElementById('pokemon-action-title').textContent = displayName;
   openModal('pokemon-action-modal');
 }
 
@@ -259,10 +337,11 @@ function replacePokemon(index) {
 /* ---------- Remove, with confirmation ---------- */
 function promptRemovePokemon(index) {
   activeSlotIndex = index;
-  const mon = DemoData.getPokemonById(teamDraft[index].pokemonId);
-  document.getElementById('confirm-remove-title').textContent = `Remove ${mon.name}?`;
+  const mon = getPokemonById(teamDraft[index].pokemonId);
+  const displayName = mon ? (mon.display_name || mon.name) : `Pokémon #${teamDraft[index].pokemonId}`;
+  document.getElementById('confirm-remove-title').textContent = `Remove ${displayName}?`;
   document.getElementById('confirm-remove-text').textContent =
-    `Are you sure you want to remove ${mon.name} from your team?`;
+    `Are you sure you want to remove ${displayName} from your team?`;
   openModal('confirm-remove-modal');
 }
 
@@ -288,10 +367,10 @@ function pickerBlockReason(pokemonEntry) {
   );
   if (alreadyInTeam) return 'Already on your team';
 
-  if (DemoData.isRestrictedCategory(pokemonEntry)) {
+  if (isRestrictedCategory(pokemonEntry)) {
     const hasRestrictedAlready = teamDraft.some((slot, i) => {
       if (!slot || i === activeSlotIndex) return false;
-      return DemoData.isRestrictedCategory(DemoData.getPokemonById(slot.pokemonId));
+      return isRestrictedCategory(getPokemonById(slot.pokemonId));
     });
     if (hasRestrictedAlready) return 'Team already has a Legendary/Mythical/Ultra Beast';
   }
@@ -299,11 +378,28 @@ function pickerBlockReason(pokemonEntry) {
   return null;
 }
 
+function filterPokemonCatalog(query, type) {
+  const q = (query || '').trim().toLowerCase();
+  const t = (type || '').trim().toLowerCase();
+
+  return pokemonCatalog.filter((p) => {
+    const nameStr = (p.display_name || p.name || '').toLowerCase();
+    const idStr = String(p.id);
+    const matchesName = !q || nameStr.includes(q) || idStr.includes(q);
+
+    const types = getPokemonTypes(p).map((x) => x.toLowerCase());
+    const matchesType = !t || types.includes(t);
+
+    return matchesName && matchesType;
+  });
+}
+
 function renderPokemonPickerResults() {
-  const query = document.getElementById('picker-search').value;
-  const type = document.getElementById('picker-type-filter').value;
-  const results = DemoData.filterPokemon(query, type);
+  const query = document.getElementById('picker-search')?.value || '';
+  const type = document.getElementById('picker-type-filter')?.value || '';
+  const results = filterPokemonCatalog(query, type);
   const grid = document.getElementById('picker-grid');
+  if (!grid) return;
 
   if (results.length === 0) {
     grid.innerHTML = '<p class="picker-empty">No Pokémon match those filters.</p>';
@@ -313,12 +409,15 @@ function renderPokemonPickerResults() {
   grid.innerHTML = results
     .map((mon) => {
       const blockReason = pickerBlockReason(mon);
+      const displayName = mon.display_name || mon.name;
+      const types = getPokemonTypes(mon);
+      const categoryLabel = mon.pokemon_category || mon.category;
       return `
         <button class="picker-option" type="button" data-pokemon-id="${mon.id}" ${blockReason ? 'disabled' : ''}>
-          <div class="mon-portrait">${pokemonPortraitHTML(mon, 56)}</div>
-          <div class="mon-name">${mon.name}</div>
-          <div>${typePillsHTML(mon.types)}</div>
-          ${DemoData.isRestrictedCategory(mon) ? `<span class="category-badge">${mon.category}</span>` : ''}
+          <div class="mon-portrait">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 56)}</div>
+          <div class="mon-name">${displayName}</div>
+          <div>${typePillsHTML(types)}</div>
+          ${isRestrictedCategory(mon) ? `<span class="category-badge">${categoryLabel}</span>` : ''}
           ${blockReason ? `<span class="block-reason">${blockReason}</span>` : ''}
         </button>
       `;
@@ -333,12 +432,25 @@ function renderPokemonPickerResults() {
   });
 }
 
-function openPokemonPicker(index) {
+async function openPokemonPicker(index) {
   activeSlotIndex = index;
-  document.getElementById('picker-search').value = '';
-  document.getElementById('picker-type-filter').value = '';
-  renderPokemonPickerResults();
+  const searchInput = document.getElementById('picker-search');
+  const typeFilter = document.getElementById('picker-type-filter');
+  if (searchInput) searchInput.value = '';
+  if (typeFilter) typeFilter.value = '';
+
+  const grid = document.getElementById('picker-grid');
+  if (grid) grid.innerHTML = '<p class="picker-empty">Loading Pokémon...</p>';
   openModal('pokemon-picker-modal');
+
+  try {
+    await ensurePokemonCatalogLoaded();
+    renderPokemonPickerResults();
+  } catch (err) {
+    if (grid) {
+      grid.innerHTML = `<p class="picker-empty">Unable to load Pokémon list: ${err?.message || 'Error'}</p>`;
+    }
+  }
 }
 
 /** Fills (or replaces) a slot with a new Pokémon and always moves on to move
@@ -351,16 +463,30 @@ function selectPokemonForSlot(index, pokemonId) {
   openMovePicker(index);
 }
 
-function initPokemonPickerFilters() {
-  document.getElementById('picker-search').addEventListener('input', renderPokemonPickerResults);
-  document.getElementById('picker-type-filter').addEventListener('change', renderPokemonPickerResults);
-
+function initPokemonPickerTypeOptions() {
   const typeSelect = document.getElementById('picker-type-filter');
+  if (!typeSelect) return;
+  const currentVal = typeSelect.value;
+
+  const typeSet = new Set();
+  pokemonCatalog.forEach((p) => {
+    getPokemonTypes(p).forEach((t) => typeSet.add(t));
+  });
+  const sortedTypes = Array.from(typeSet).sort();
+
   typeSelect.innerHTML =
     '<option value="">All Types</option>' +
-    DemoData.getAllTypes()
-      .map((type) => `<option value="${type}">${type}</option>`)
-      .join('');
+    sortedTypes.map((type) => `<option value="${type}">${type}</option>`).join('');
+
+  if (currentVal && sortedTypes.includes(currentVal)) {
+    typeSelect.value = currentVal;
+  }
+}
+
+function initPokemonPickerFilters() {
+  document.getElementById('picker-search')?.addEventListener('input', renderPokemonPickerResults);
+  document.getElementById('picker-type-filter')?.addEventListener('change', renderPokemonPickerResults);
+  initPokemonPickerTypeOptions();
 }
 
 /* ============================================================
@@ -370,10 +496,11 @@ function initPokemonPickerFilters() {
    ============================================================ */
 async function renderMovePicker() {
   const slot = teamDraft[activeSlotIndex];
-  const mon = DemoData.getPokemonById(slot.pokemonId);
+  const mon = getPokemonById(slot.pokemonId);
+  const displayName = mon ? (mon.display_name || mon.name) : `Pokémon #${slot.pokemonId}`;
 
-  document.getElementById('move-picker-mon-portrait').innerHTML = pokemonPortraitHTML(mon, 48);
-  document.getElementById('move-picker-mon-name').textContent = mon ? mon.name : `Pokémon #${slot.pokemonId}`;
+  document.getElementById('move-picker-mon-portrait').innerHTML = pokemonPortraitHTML({ id: slot.pokemonId, name: displayName }, 48);
+  document.getElementById('move-picker-mon-name').textContent = displayName;
 
   const slotsContainer = document.getElementById('move-slots');
   slotsContainer.innerHTML = Array.from({ length: MOVES_PER_POKEMON })
@@ -400,6 +527,11 @@ async function renderMovePicker() {
 
   const pool = document.getElementById('move-pool');
   const atLimit = slot.moveIds.length >= MOVES_PER_POKEMON;
+
+  // Show loading indicator if move options need fetching
+  if (pool && (!moveOptionsCache[slot.pokemonId] || moveOptionsCache[slot.pokemonId].length < 10)) {
+    pool.innerHTML = '<div class="picker-empty">Loading move options...</div>';
+  }
 
   // Ensure we have move options from backend
   try {
@@ -501,21 +633,22 @@ function validateTeam(draft) {
   }
 
   const restrictedCount = filledSlots.filter((slot) =>
-    DemoData.isRestrictedCategory(DemoData.getPokemonById(slot.pokemonId))
+    isRestrictedCategory(getPokemonById(slot.pokemonId))
   ).length;
   if (restrictedCount > 1) {
     errors.push('Only one Legendary, Mythical, or Ultra Beast is allowed per team.');
   }
 
   filledSlots.forEach((slot) => {
-    const mon = DemoData.getPokemonById(slot.pokemonId);
+    const mon = getPokemonById(slot.pokemonId);
+    const displayName = mon ? (mon.display_name || mon.name) : `Slot #${slot.pokemonId}`;
     const movesMissing = MOVES_PER_POKEMON - slot.moveIds.length;
     if (movesMissing > 0) {
-      errors.push(`${mon.name} needs ${movesMissing} more move${movesMissing === 1 ? '' : 's'}.`);
+      errors.push(`${displayName} needs ${movesMissing} more move${movesMissing === 1 ? '' : 's'}.`);
     }
     const hasDuplicateMoves = slot.moveIds.length !== new Set(slot.moveIds.map(Number)).size;
     if (hasDuplicateMoves) {
-      errors.push(`${mon.name} has a duplicate move selected.`);
+      errors.push(`${displayName} has a duplicate move selected.`);
     }
   });
 
@@ -606,8 +739,12 @@ async function saveTeam() {
     // Re-render views so Create Team locks into "Team Already Exists"
     if (currentSection === 'create-team') {
       await renderCreateTeam();
+      const createFeedback = document.getElementById('save-feedback');
+      if (createFeedback) createFeedback.textContent = 'Team created successfully!';
     } else if (currentSection === 'edit-team') {
       await renderEditTeam();
+      const editFeedback = document.getElementById('save-feedback');
+      if (editFeedback) editFeedback.textContent = 'Team updated successfully!';
     }
 
     // Refresh Overview dashboard so roster preview stays synchronized
