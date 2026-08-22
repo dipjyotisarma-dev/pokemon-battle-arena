@@ -27,74 +27,103 @@
       <!-- ============================================================
            SCREEN 1: TEAM REVEAL
            ============================================================ -->
-      <section class="battle-screen" data-screen="reveal">
-        <span class="eyebrow">Matchmaking Roster</span>
-        <h2>Teams Entering the Arena</h2>
+      <section class="battle-screen reveal-screen" data-screen="reveal">
+        <div class="screen-header">
+          <span class="eyebrow"><span class="pulse-dot"></span> Matchmaking Roster</span>
+          <h2>Teams Entering the Arena</h2>
+          <p class="screen-desc">Inspect your squad and challenger lineup before entering match 1.</p>
+        </div>
 
-        <div class="reveal-columns">
-          <div class="reveal-side side-player card">
-            <div class="reveal-side-header">
-              <span class="eyebrow">Your Roster</span>
+        <div class="reveal-roster-container">
+          <!-- Trainer Side -->
+          <div class="reveal-team-panel side-trainer card reticle">
+            <div class="team-panel-header">
+              <div class="team-badge"><span class="badge-dot player"></span> YOUR ROSTER</div>
               <h3>Trainer Team</h3>
             </div>
             <div class="reveal-grid" id="reveal-player-grid"></div>
           </div>
 
-          <div class="reveal-vs-badge" aria-hidden="true">VS</div>
+          <!-- VS Divider -->
+          <div class="reveal-vs-hub" aria-hidden="true">
+            <div class="vs-line"></div>
+            <div class="vs-circle">VS</div>
+            <div class="vs-line"></div>
+          </div>
 
-          <div class="reveal-side side-opponent card">
-            <div class="reveal-side-header">
-              <span class="eyebrow">Challenger</span>
+          <!-- Opponent Side -->
+          <div class="reveal-team-panel side-opponent card reticle">
+            <div class="team-panel-header">
+              <div class="team-badge"><span class="badge-dot opponent"></span> CHALLENGER</div>
               <h3>Opponent Team</h3>
             </div>
             <div class="reveal-grid" id="reveal-opponent-grid"></div>
           </div>
         </div>
 
-        <button class="btn btn-primary reticle" type="button" id="start-battle-btn" hidden>Start Battle</button>
+        <div class="screen-actions">
+          <button class="btn btn-primary reticle btn-lg" type="button" id="start-battle-btn" hidden>Start Battle</button>
+        </div>
       </section>
 
       <!-- ============================================================
            SCREEN 2: MATCH INTRO
            ============================================================ -->
-      <section class="battle-screen" data-screen="match-intro" hidden>
-        <div class="match-banner" id="match-intro-banner">Match 1</div>
-        <div class="match-subbanner" id="match-intro-sub"></div>
+      <section class="battle-screen match-intro-screen" data-screen="match-intro" hidden>
+        <div class="match-intro-container">
+          <div class="screen-header">
+            <span class="eyebrow" id="match-intro-eyebrow"><span class="pulse-dot"></span> UPCOMING OPPONENT</span>
+            <h2 class="match-intro-title" id="match-intro-banner">Match 1</h2>
+            <div class="match-subbanner" id="match-intro-sub"></div>
+          </div>
 
-        <div class="mon-intro-card card" id="opponent-intro-card" hidden></div>
+          <div class="mon-intro-card card reticle" id="opponent-intro-card" hidden></div>
 
-        <button class="btn btn-primary reticle" type="button" id="choose-pokemon-btn" style="margin-top: var(--space-6);" hidden>
-          Choose Your Pokémon
-        </button>
+          <div class="screen-actions">
+            <button class="btn btn-primary reticle btn-lg" type="button" id="choose-pokemon-btn" hidden>
+              Choose Your Pokémon →
+            </button>
+          </div>
+        </div>
       </section>
 
       <!-- ============================================================
            SCREEN 3: TRAINER POKÉMON SELECTION
            ============================================================ -->
-      <section class="battle-screen" data-screen="player-select" hidden>
-        <span class="eyebrow">Tactical Selection</span>
-        <h2>Select Your Pokémon</h2>
+      <section class="battle-screen player-select-screen" data-screen="player-select" hidden>
+        <div class="screen-header">
+          <span class="eyebrow"><span class="pulse-dot"></span> Tactical Selection</span>
+          <h2>Select Your Pokémon</h2>
+          <p class="screen-desc">Choose an available team member for this match. Each Pokémon can only battle once per session.</p>
+        </div>
         <div class="select-grid" id="select-grid"></div>
       </section>
 
       <!-- ============================================================
            SCREEN 4: MATCHUP CONFIRMATION
            ============================================================ -->
-      <section class="battle-screen" data-screen="matchup" hidden>
-        <span class="eyebrow">Tactical Face-Off</span>
-        <h2>Ready to Battle?</h2>
+      <section class="battle-screen matchup-screen" data-screen="matchup" hidden>
+        <div class="matchup-container">
+          <div class="screen-header">
+            <span class="eyebrow"><span class="pulse-dot"></span> Tactical Face-Off</span>
+            <h2>Ready to Battle?</h2>
+          </div>
 
-        <div class="matchup-grid">
-          <div id="matchup-player-card"></div>
-          <div class="matchup-vs-badge">VS</div>
-          <div id="matchup-opponent-card"></div>
-        </div>
+          <div class="matchup-arena-preview">
+            <div class="matchup-side side-player" id="matchup-player-card"></div>
+            
+            <div class="matchup-center-hub">
+              <div class="matchup-vs-badge" aria-hidden="true">VS</div>
+              <div class="matchup-first-tag" id="matchup-first-tag"></div>
+            </div>
 
-        <div class="matchup-first-tag" id="matchup-first-tag"></div>
+            <div class="matchup-side side-opponent" id="matchup-opponent-card"></div>
+          </div>
 
-        <div class="matchup-actions" style="margin-top: var(--space-6);">
-          <button class="btn btn-secondary" type="button" id="matchup-back-btn">✕ Back</button>
-          <button class="btn btn-primary reticle" type="button" id="matchup-continue-btn">Continue to Arena</button>
+          <div class="matchup-actions">
+            <button class="btn btn-secondary btn-lg" type="button" id="matchup-back-btn">✕ Back to Selection</button>
+            <button class="btn btn-primary reticle btn-lg" type="button" id="matchup-continue-btn">Enter Arena →</button>
+          </div>
         </div>
       </section>
 
@@ -201,10 +230,14 @@
       <!-- ============================================================
            SCREEN 6: MATCH SUMMARY
            ============================================================ -->
-      <section class="battle-screen" data-screen="match-summary" hidden>
-        <div class="summary-panel card">
-          <span class="eyebrow">Match Outcome</span>
-          <div class="summary-result" id="summary-result">Win</div>
+      <section class="battle-screen match-summary-screen" data-screen="match-summary" hidden>
+        <div class="summary-card card reticle">
+          <div class="summary-header">
+            <span class="eyebrow">Match Outcome</span>
+            <div class="summary-result" id="summary-result">VICTORY</div>
+            <div class="summary-subtitle" id="summary-subtitle">Match 1 Concluded</div>
+          </div>
+
           <div class="summary-stat-grid">
             <div class="cell">
               <span class="l">Match</span>
@@ -212,39 +245,51 @@
             </div>
             <div class="cell">
               <span class="l">Points Earned</span>
-              <span class="v" id="summary-points">+0</span>
+              <span class="v" id="summary-points">+0.0</span>
             </div>
           </div>
-          <button class="btn btn-primary btn-block reticle" type="button" id="next-match-btn">Next Match</button>
+
+          <div class="summary-actions">
+            <button class="btn btn-primary btn-block reticle btn-lg" type="button" id="next-match-btn">Next Match →</button>
+          </div>
         </div>
       </section>
 
       <!-- ============================================================
            SCREEN 7: SESSION SUMMARY
            ============================================================ -->
-      <section class="battle-screen" data-screen="session-summary" hidden>
-        <div class="summary-panel card session-panel">
-          <span class="eyebrow">Session Complete</span>
-          <h2>Arena Summary</h2>
-          <div class="summary-stat-grid four-col">
+      <section class="battle-screen session-summary-screen" data-screen="session-summary" hidden>
+        <div class="session-card card reticle">
+          <div class="session-header">
+            <span class="eyebrow"><span class="pulse-dot"></span> SESSION COMPLETE</span>
+            <h2>Arena Summary</h2>
+            <p class="session-subtitle">All 6 arena matches have been completed.</p>
+          </div>
+
+          <div class="session-stat-grid">
             <div class="cell">
-              <span class="l">Matches</span>
-              <span class="v" id="session-matches">0</span>
+              <span class="l">Matches Played</span>
+              <span class="v" id="session-matches">6</span>
             </div>
             <div class="cell">
-              <span class="l">Wins</span>
+              <span class="l">Total Wins</span>
               <span class="v" id="session-wins">0</span>
             </div>
             <div class="cell">
               <span class="l">Total Points</span>
-              <span class="v" id="session-points">+0</span>
+              <span class="v" id="session-points">+0.0</span>
             </div>
             <div class="cell">
-              <span class="l">Current Rank</span>
+              <span class="l">Leaderboard Rank</span>
               <span class="v" id="session-rank">—</span>
             </div>
           </div>
-          <button class="btn btn-primary btn-block reticle" type="button" id="return-to-dashboard-btn">Return to Dashboard</button>
+
+          <div class="session-actions">
+            <button class="btn btn-primary btn-block reticle btn-lg" type="button" id="return-to-dashboard-btn">
+              Return to Dashboard
+            </button>
+          </div>
         </div>
       </section>
     </main>

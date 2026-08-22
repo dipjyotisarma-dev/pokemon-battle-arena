@@ -136,10 +136,27 @@ function showScreen(name) {
    ============================================================ */
 function revealCardHTML(pokemonPreview, revealed) {
   if (!revealed) {
-    return `<div class="reveal-card is-visible"><div class="mon-portrait"><span style="font-family:var(--font-mono);color:var(--text-faint);font-size:1.3rem;">?</span></div><div class="mon-name">???</div></div>`;
+    return `
+      <div class="reveal-card is-mystery is-visible">
+        <div class="mystery-glyph-wrap">
+          <span class="mystery-glyph">?</span>
+        </div>
+        <div class="mon-name">UNKNOWN</div>
+        <div class="mon-meta-tag">CHALLENGER</div>
+      </div>
+    `;
   }
   const displayName = pokemonPreview.display_name || pokemonPreview.name;
-  return `<div class="reveal-card is-visible"><div class="mon-portrait">${pokemonPortraitHTML({ id: pokemonPreview.id, name: displayName }, 40)}</div><div class="mon-name">${displayName}</div></div>`;
+  const types = getPokemonTypes(pokemonPreview);
+  return `
+    <div class="reveal-card is-revealed is-visible">
+      <div class="mon-portrait">${pokemonPortraitHTML({ id: pokemonPreview.id, name: displayName }, 44)}</div>
+      <div class="mon-info">
+        <div class="mon-name">${displayName}</div>
+        ${types.length > 0 ? `<div class="mon-types">${typePillsHTML(types)}</div>` : ''}
+      </div>
+    </div>
+  `;
 }
 
 async function runTeamReveal() {
@@ -186,8 +203,12 @@ async function handleStartBattleClick() {
   for (let i = 0; i < opponentCards.length; i += 1) {
     const mon = opponentTeamPreview[i];
     if (mon && opponentCards[i]) {
-      const displayName = mon.display_name || mon.name;
-      opponentCards[i].innerHTML = `<div class="mon-portrait">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 40)}</div><div class="mon-name">${displayName}</div>`;
+      const parent = opponentCards[i].parentElement;
+      const tempWrapper = document.createElement('div');
+      tempWrapper.innerHTML = revealCardHTML(mon, true);
+      const newCard = tempWrapper.firstElementChild;
+      newCard.classList.add('is-revealing');
+      parent.replaceChild(newCard, opponentCards[i]);
       // eslint-disable-next-line no-await-in-loop
       await wait(850);
     }
@@ -272,7 +293,7 @@ async function beginMatch() {
   const chooseBtn = document.getElementById('choose-pokemon-btn');
 
   banner.textContent = `Match ${currentMatchNumber}`;
-  sub.textContent = 'Choosing Opponent...';
+  sub.textContent = 'Analyzing Opponent Lineup...';
   introCard.hidden = true;
   chooseBtn.hidden = true;
 
@@ -305,11 +326,17 @@ async function beginMatch() {
 function renderOpponentIntroCard(mon) {
   const types = getPokemonTypes(mon);
   const displayName = mon.display_name || mon.name;
+  const bst = (mon.hp || 0) + (mon.attack || 0) + (mon.defense || 0) + (mon.special_attack || 0) + (mon.special_defense || 0) + (mon.speed || 0);
 
   document.getElementById('opponent-intro-card').innerHTML = `
-    <div class="mon-portrait">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 96)}</div>
-    <div class="mon-name">${displayName}</div>
-    <div style="margin-bottom: var(--space-2);">${typePillsHTML(types)}</div>
+    <div class="intro-hero-spot">
+      <div class="mon-portrait-hero">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 128)}</div>
+    </div>
+    <div class="intro-details">
+      <div class="mon-name-hero">${displayName}</div>
+      <div class="mon-types-hero">${typePillsHTML(types)}</div>
+      <div class="mon-bst-badge"><span class="l">TOTAL BST</span> <span class="v">${bst}</span></div>
+    </div>
     <div class="mon-intro-stats">
       <div class="cell"><span class="l">HP</span><span class="v">${mon.hp}</span></div>
       <div class="cell"><span class="l">Attack</span><span class="v">${mon.attack}</span></div>
@@ -334,17 +361,32 @@ function showPlayerSelectScreen() {
     .map((teamMember) => {
       const isAvailable = availableSlots.has(teamMember.slot);
       const displayName = teamMember.display_name || teamMember.name;
-      const fullMon = availableTrainerPokemon.find((p) => p.slot === teamMember.slot);
-      const types = fullMon ? getPokemonTypes(fullMon) : [];
+      const fullMon = availableTrainerPokemon.find((p) => p.slot === teamMember.slot) || teamMember;
+      const types = getPokemonTypes(fullMon);
+      const moves = fullMon.moves || [];
 
       return `
-        <button class="select-card card reticle" type="button" data-slot="${teamMember.slot}" ${!isAvailable ? 'disabled' : ''}>
-          <div class="mon-portrait">${pokemonPortraitHTML({ id: teamMember.id, name: displayName }, 56)}</div>
-          <div>
-            <div class="mon-name">${displayName}</div>
-            <div>${typePillsHTML(types)}</div>
+        <button class="select-card card reticle ${!isAvailable ? 'is-battled' : 'is-available'}" type="button" data-slot="${teamMember.slot}" ${!isAvailable ? 'disabled' : ''}>
+          <div class="select-card-header">
+            <span class="slot-num">SLOT 0${teamMember.slot}</span>
+            ${isAvailable 
+              ? '<span class="status-badge available"><span class="status-dot"></span> READY</span>' 
+              : '<span class="status-badge battled"><span class="status-dot"></span> BATTLED</span>'}
           </div>
-          ${!isAvailable ? '<div class="used-tag">Already Battled</div>' : '<div class="select-hint" style="font-family:var(--font-mono);font-size:0.65rem;color:var(--text-faint);text-transform:uppercase;margin-top:6px;">Available</div>'}
+          <div class="select-card-body">
+            <div class="mon-portrait-wrap">
+              ${pokemonPortraitHTML({ id: teamMember.id, name: displayName }, 64)}
+            </div>
+            <div class="mon-main-info">
+              <div class="mon-name">${displayName}</div>
+              <div class="mon-types">${typePillsHTML(types)}</div>
+            </div>
+          </div>
+          <div class="select-card-footer">
+            <div class="select-moves-preview">
+              ${moves.length > 0 ? moves.map(m => `<span class="mini-move-pill">${m.display_name || m.move_name}</span>`).join('') : '<span class="mini-move-pill text-muted">Battle Ready</span>'}
+            </div>
+          </div>
         </button>
       `;
     })
@@ -361,15 +403,24 @@ function showPlayerSelectScreen() {
 /* ============================================================
    MATCHUP CONFIRMATION (POST /battle/{id}/select-pokemon)
    ============================================================ */
-function matchupCardHTML(mon) {
+function matchupCardHTML(mon, role) {
   const types = getPokemonTypes(mon);
   const displayName = mon.display_name || mon.name;
+  const isTrainer = role === 'trainer';
   return `
-    <div class="matchup-card card">
-      <div class="mon-portrait">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 80)}</div>
-      <div class="mon-name">${displayName}</div>
-      <div style="margin-bottom: var(--space-2);">${typePillsHTML(types)}</div>
-      <div class="mon-intro-stats" style="margin-top: var(--space-3);">
+    <div class="matchup-combatant-card card reticle ${isTrainer ? 'side-player' : 'side-opponent'}">
+      <div class="matchup-card-header">
+        <span class="badge-dot ${isTrainer ? 'player' : 'opponent'}"></span>
+        <span class="combatant-role">${isTrainer ? 'YOUR COMBATANT' : 'ENEMY OPPONENT'}</span>
+      </div>
+      <div class="matchup-portrait-spot">
+        ${pokemonPortraitHTML({ id: mon.id, name: displayName }, 96)}
+      </div>
+      <div class="matchup-info">
+        <div class="mon-name">${displayName}</div>
+        <div class="mon-types">${typePillsHTML(types)}</div>
+      </div>
+      <div class="matchup-stats-grid">
         <div class="cell"><span class="l">HP</span><span class="v">${mon.hp}</span></div>
         <div class="cell"><span class="l">Speed</span><span class="v">${mon.speed}</span></div>
         <div class="cell"><span class="l">Attack</span><span class="v">${mon.attack}</span></div>
@@ -399,9 +450,15 @@ async function selectTrainerPokemon(slot) {
       ? (currentTrainerPokemon.display_name || currentTrainerPokemon.name)
       : (currentOpponentPokemon.display_name || currentOpponentPokemon.name);
 
-    document.getElementById('matchup-player-card').innerHTML = matchupCardHTML(currentTrainerPokemon);
-    document.getElementById('matchup-opponent-card').innerHTML = matchupCardHTML(currentOpponentPokemon);
-    document.getElementById('matchup-first-tag').textContent = `${firstAttackerName} attacks first`;
+    document.getElementById('matchup-player-card').innerHTML = matchupCardHTML(currentTrainerPokemon, 'trainer');
+    document.getElementById('matchup-opponent-card').innerHTML = matchupCardHTML(currentOpponentPokemon, 'opponent');
+    
+    const isTrainerFirst = firstAttacker === 'trainer';
+    document.getElementById('matchup-first-tag').innerHTML = `
+      <span class="first-label">FIRST ATTACKER:</span>
+      <span class="first-name ${isTrainerFirst ? 'trainer' : 'opponent'}">${firstAttackerName}</span>
+      <span class="first-reason">(${isTrainerFirst ? currentTrainerPokemon.display_name : currentOpponentPokemon.display_name} Speed ${isTrainerFirst ? currentTrainerPokemon.speed : currentOpponentPokemon.speed})</span>
+    `;
   } catch (err) {
     const msg = err.body?.detail || err.message || 'Error selecting Pokémon.';
     alert(msg);
@@ -836,11 +893,16 @@ function showMatchSummary(matchResult, completedMatches, completedPoints) {
 
   showScreen('match-summary');
   const resultEl = document.getElementById('summary-result');
-  resultEl.textContent = won ? 'Win' : 'Loss';
+  resultEl.textContent = won ? 'VICTORY' : 'DEFEAT';
   resultEl.className = `summary-result ${won ? 'win' : 'loss'}`;
 
   const matchNum = (matchResult && matchResult.match != null) ? matchResult.match : (completedMatches || currentMatchNumber);
-  document.getElementById('summary-match-number').textContent = matchNum;
+  document.getElementById('summary-match-number').textContent = `${matchNum} / 6`;
+
+  const subtitleEl = document.getElementById('summary-subtitle');
+  if (subtitleEl) {
+    subtitleEl.textContent = won ? `Match ${matchNum} Won — Points Awarded` : `Match ${matchNum} Lost — Points Deducted`;
+  }
 
   if (completedMatchesCount < 6) {
     currentMatchNumber = completedMatchesCount + 1;
@@ -854,12 +916,12 @@ function showMatchSummary(matchResult, completedMatches, completedPoints) {
 
   const nextBtn = document.getElementById('next-match-btn');
   if (completedMatchesCount >= 6) {
-    nextBtn.textContent = 'Finish';
+    nextBtn.textContent = 'Finish Session →';
     nextBtn.onclick = async () => {
       await fetchUpdatedRankAndShowSessionSummary();
     };
   } else {
-    nextBtn.textContent = 'Next Match';
+    nextBtn.textContent = 'Next Match →';
     nextBtn.onclick = beginMatch;
   }
 }
