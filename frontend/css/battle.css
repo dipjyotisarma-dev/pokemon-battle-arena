@@ -940,75 +940,89 @@
 }
 
 /* ---------- Combat Animations ---------- */
-/* Responsive forward lunge with anticipation and impact */
+/* 1. Anticipation (Short pull-back before strike) */
+.combatant.is-anticipating .mon-portrait {
+  transform: translate(14px, -10px) scale(0.94);
+  transition: transform 220ms var(--ease);
+}
+
+.combatant.player.is-anticipating .mon-portrait {
+  transform: scaleX(-1) translate(14px, 10px) scale(0.94);
+  transition: transform 220ms var(--ease);
+}
+
+/* 2. Responsive forward lunge with dynamic impact */
 .combatant.is-attacking .mon-portrait {
-  animation: attack-lunge-opponent 380ms var(--ease);
+  animation: attack-lunge-opponent 450ms cubic-bezier(0.22, 0.9, 0.3, 1);
 }
 
 .combatant.player.is-attacking .mon-portrait {
-  animation: attack-lunge-player 380ms var(--ease);
+  animation: attack-lunge-player 450ms cubic-bezier(0.22, 0.9, 0.3, 1);
 }
 
 @keyframes attack-lunge-opponent {
   0% {
-    transform: translate(0, 0) scale(1);
-  }
-  20% {
-    transform: translate(8px, -6px) scale(0.96);
+    transform: translate(14px, -10px) scale(0.94);
   }
   45% {
-    transform: translate(-38px, 26px) scale(1.06);
+    transform: translate(-55px, 38px) scale(1.10);
+    filter: drop-shadow(0 14px 28px rgba(242, 183, 5, 0.45)) brightness(1.2);
   }
   70% {
-    transform: translate(-30px, 20px) scale(1.02);
+    transform: translate(-40px, 28px) scale(1.04);
   }
   100% {
     transform: translate(0, 0) scale(1);
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1);
   }
 }
 
 @keyframes attack-lunge-player {
   0% {
-    transform: scaleX(-1) translate(0, 0) scale(1);
-  }
-  20% {
-    transform: scaleX(-1) translate(8px, 6px) scale(0.96);
+    transform: scaleX(-1) translate(14px, 10px) scale(0.94);
   }
   45% {
-    transform: scaleX(-1) translate(-38px, -26px) scale(1.06);
+    transform: scaleX(-1) translate(-55px, -38px) scale(1.10);
+    filter: drop-shadow(0 14px 28px rgba(47, 217, 198, 0.45)) brightness(1.2);
   }
   70% {
-    transform: scaleX(-1) translate(-30px, -20px) scale(1.02);
+    transform: scaleX(-1) translate(-40px, -28px) scale(1.04);
   }
   100% {
     transform: scaleX(-1) translate(0, 0) scale(1);
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1);
   }
 }
 
+/* 3. Target Hit Reaction & Vibration */
 .combatant.is-hit .mon-portrait {
-  animation: hit-shake 360ms var(--ease);
+  animation: hit-shake-opponent 420ms var(--ease);
 }
 
-@keyframes hit-shake {
-  0%, 100% {
-    transform: translateX(0);
+@keyframes hit-shake-opponent {
+  0% {
+    transform: translate(0, 0);
     filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1);
   }
   20% {
-    transform: translateX(10px);
-    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(2.4) saturate(0);
+    transform: translate(14px, -10px) scale(0.95);
+    filter: drop-shadow(0 14px 28px rgba(229, 72, 77, 0.6)) brightness(2.4) saturate(0.2);
   }
   40% {
-    transform: translateX(-10px);
-    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1.2);
+    transform: translate(-10px, 6px) scale(1.02);
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1.3);
   }
   60% {
-    transform: translateX(6px);
-    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1.6);
+    transform: translate(8px, -6px);
+    filter: drop-shadow(0 12px 24px rgba(229, 72, 77, 0.4)) brightness(1.7);
   }
   80% {
-    transform: translateX(-4px);
+    transform: translate(-4px, 2px);
     filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1.1);
+  }
+  100% {
+    transform: translate(0, 0) scale(1);
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1);
   }
 }
 
@@ -1017,44 +1031,53 @@
 }
 
 @keyframes hit-shake-player {
-  0%, 100% {
-    transform: scaleX(-1) translateX(0);
+  0% {
+    transform: scaleX(-1) translate(0, 0);
     filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1);
   }
   20% {
-    transform: scaleX(-1) translateX(10px);
-    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(2.4) saturate(0);
+    transform: scaleX(-1) translate(14px, 10px) scale(0.95);
+    filter: drop-shadow(0 14px 28px rgba(229, 72, 77, 0.6)) brightness(2.4) saturate(0.2);
   }
   40% {
-    transform: scaleX(-1) translateX(-10px);
-    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1.2);
+    transform: scaleX(-1) translate(-10px, -6px) scale(1.02);
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1.3);
   }
   60% {
-    transform: scaleX(-1) translateX(6px);
-    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1.6);
+    transform: scaleX(-1) translate(8px, 6px);
+    filter: drop-shadow(0 12px 24px rgba(229, 72, 77, 0.4)) brightness(1.7);
   }
   80% {
-    transform: scaleX(-1) translateX(-4px);
+    transform: scaleX(-1) translate(-4px, -2px);
     filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1.1);
+  }
+  100% {
+    transform: scaleX(-1) translate(0, 0) scale(1);
+    filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.8)) brightness(1);
   }
 }
 
+/* 4. Visible Faint Transition */
 .combatant.is-fainted .mon-portrait {
   opacity: 0;
-  transform: translateY(32px) rotate(8deg);
-  transition: opacity 450ms var(--ease), transform 450ms var(--ease);
+  transform: translateY(36px) scale(0.85) rotate(10deg);
+  filter: grayscale(0.8) brightness(0.5);
+  transition: opacity 800ms var(--ease), transform 800ms var(--ease), filter 800ms var(--ease);
 }
 
 .combatant.player.is-fainted .mon-portrait {
-  transform: scaleX(-1) translateY(32px) rotate(-8deg);
+  transform: scaleX(-1) translateY(36px) scale(0.85) rotate(-10deg);
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .combatant.is-anticipating .mon-portrait,
+  .combatant.player.is-anticipating .mon-portrait,
   .combatant.is-attacking .mon-portrait,
   .combatant.player.is-attacking .mon-portrait,
   .combatant.is-hit .mon-portrait,
   .combatant.player.is-hit .mon-portrait {
     animation: none;
+    transition: none;
   }
 }
 
@@ -1208,10 +1231,6 @@
   width: 100%;
 }
 
-.move-panel[hidden] {
-  display: none !important;
-}
-
 .move-btn {
   background: var(--surface);
   border: 1px solid var(--border-strong);
@@ -1229,16 +1248,19 @@
 }
 
 .move-btn:hover:not([disabled]) {
-  border-color: var(--accent-primary);
-  background: var(--bg-elevated);
+  border-color: var(--accent-secondary);
+  background: var(--surface-2);
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--accent-primary);
+  box-shadow: 0 4px 14px rgba(47, 217, 198, 0.15);
 }
 
 .move-btn[disabled] {
-  opacity: 0.38;
+  opacity: 0.45;
   cursor: not-allowed;
-  transform: none;
+  transform: none !important;
+  pointer-events: none;
+  box-shadow: none !important;
+  border-color: var(--border-strong) !important;
 }
 
 .move-btn .move-name {
@@ -1338,4 +1360,4 @@
   font-size: 1.4rem;
   font-weight: 700;
   color: var(--accent-primary);
-}
+}

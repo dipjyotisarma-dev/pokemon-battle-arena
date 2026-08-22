@@ -54,19 +54,15 @@ function getPokemonTypes(p) {
 function setMoveControlsEnabled(enabled) {
   const panel = document.getElementById('move-panel');
   if (!panel) return;
-  if (!enabled) {
-    panel.hidden = true;
-    panel.querySelectorAll('.move-btn').forEach((btn) => {
-      btn.disabled = true;
-      btn.setAttribute('aria-disabled', 'true');
-    });
-  } else {
-    panel.hidden = false;
-    panel.querySelectorAll('.move-btn').forEach((btn) => {
-      btn.disabled = false;
+  panel.removeAttribute('hidden');
+  panel.querySelectorAll('.move-btn').forEach((btn) => {
+    btn.disabled = !enabled;
+    if (enabled) {
       btn.removeAttribute('aria-disabled');
-    });
-  }
+    } else {
+      btn.setAttribute('aria-disabled', 'true');
+    }
+  });
 }
 
 /* ============================================================
@@ -454,6 +450,41 @@ function renderHealthBar(side, currentHp, maxHp, displayName) {
   }
 }
 
+function animateHealthBar(side, startHp, targetHp, maxHp, displayName, duration = 650) {
+  return new Promise((resolve) => {
+    const startTime = performance.now();
+    const safeMax = Math.max(1, maxHp);
+    const start = Math.max(0, startHp);
+    const end = Math.max(0, targetHp);
+    const diff = end - start;
+
+    if (start === end || duration <= 0) {
+      renderHealthBar(side, end, maxHp, displayName);
+      resolve();
+      return;
+    }
+
+    function step(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(1, elapsed / duration);
+      // Ease out cubic for smooth deceleration
+      const ease = 1 - Math.pow(1 - progress, 3);
+      const current = Math.round(start + diff * ease);
+
+      renderHealthBar(side, current, maxHp, displayName);
+
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        renderHealthBar(side, end, maxHp, displayName);
+        resolve();
+      }
+    }
+
+    requestAnimationFrame(step);
+  });
+}
+
 function setCenterMessage(mainText, damageText, isCountdown = false) {
   const main = document.getElementById('center-line-main');
   const damage = document.getElementById('center-line-damage');
@@ -510,8 +541,8 @@ async function enterArena() {
   const playerDisplayName = currentTrainerPokemon.display_name || currentTrainerPokemon.name;
   const opponentDisplayName = currentOpponentPokemon.display_name || currentOpponentPokemon.name;
 
-  document.getElementById('player-combatant').classList.remove('is-fainted', 'is-hit', 'is-attacking');
-  document.getElementById('opponent-combatant').classList.remove('is-fainted', 'is-hit', 'is-attacking');
+  document.getElementById('player-combatant').classList.remove('is-fainted', 'is-hit', 'is-attacking', 'is-anticipating');
+  document.getElementById('opponent-combatant').classList.remove('is-fainted', 'is-hit', 'is-attacking', 'is-anticipating');
   document.getElementById('player-portrait').innerHTML = pokemonPortraitHTML({ id: currentTrainerPokemon.id, name: playerDisplayName }, 120);
   document.getElementById('opponent-portrait').innerHTML = pokemonPortraitHTML({ id: currentOpponentPokemon.id, name: opponentDisplayName }, 120);
   document.getElementById('player-name-tag').textContent = playerDisplayName;
@@ -526,7 +557,7 @@ async function enterArena() {
   renderHealthBar('player', currentTrainerHp, currentTrainerMaxHp, playerDisplayName);
   renderHealthBar('opponent', currentOpponentHp, currentOpponentMaxHp, opponentDisplayName);
   renderTeamTrackers();
-
+  renderMovePanel();
   setMoveControlsEnabled(false);
   setCenterMessage('', '');
 
@@ -546,7 +577,7 @@ async function enterArena() {
     // Run prominent, visible countdown (3 -> 2 -> 1 -> BATTLE!)
     await runBattleCountdown();
 
-    // If opponent attacked first on continue, animate opening attack from 100% full HP
+    // If opponent attacked first on continue, sequentially present opening attack from full HP
     if (data.events && data.events.length > 0) {
       isEventAnimating = true;
       await animateEventSequence(data.events, data.battle_log);
@@ -562,12 +593,13 @@ async function enterArena() {
     if (data.match_result || currentTrainerHp <= 0 || currentOpponentHp <= 0) {
       matchCompleted = true;
       setMoveControlsEnabled(false);
-      await wait(1200);
+      await wait(1000);
       showMatchSummary(data.match_result, data.completed_matches, data.completed_points);
       return;
     }
 
-    // It is now trainer's turn
+    // Short pause before announcing trainer's turn
+    await wait(300);
     presentTrainerTurn();
   } catch (err) {
     const msg = err.body?.detail || err.message || 'Error entering arena.';
@@ -583,7 +615,7 @@ async function runBattleCountdown() {
     await wait(600);
   }
   setCenterMessage('', '', false);
-  await wait(200);
+  await wait(250);
 }
 
 function presentTrainerTurn() {
@@ -594,26 +626,22 @@ function presentTrainerTurn() {
   const playerDisplayName = currentTrainerPokemon.display_name || currentTrainerPokemon.name;
   setCenterMessage(`${playerDisplayName}'s Turn`, '');
   awaitingPlayerMove = true;
+  isEventAnimating = false;
   renderMovePanel();
 }
 
 function renderMovePanel() {
   const panel = document.getElementById('move-panel');
-  if (!panel) return;
+  if (!panel || !currentTrainerPokemon) return;
 
-  if (!matchInProgress || matchCompleted || currentTrainerHp <= 0 || currentOpponentHp <= 0) {
-    setMoveControlsEnabled(false);
-    return;
-  }
-
-  setMoveControlsEnabled(true);
+  panel.removeAttribute('hidden');
   const moves = currentTrainerPokemon.moves || [];
 
   panel.innerHTML = moves
     .map((move) => {
       const moveName = move.display_name || move.move_name;
       return `
-        <button class="move-btn reticle" type="button" data-move-id="${move.id}">
+        <button class="move-btn reticle" type="button" data-move-id="${move.id}" disabled aria-disabled="true">
           <div class="move-name">${moveName}</div>
           <div class="move-meta">
             <span class="type-pill" data-type="${move.move_type}">${move.move_type}</span>
@@ -635,6 +663,9 @@ function renderMovePanel() {
       executeTrainerMove(moveId);
     });
   });
+
+  const shouldBeEnabled = awaitingPlayerMove && matchInProgress && !matchCompleted && !isEventAnimating && currentTrainerHp > 0 && currentOpponentHp > 0;
+  setMoveControlsEnabled(shouldBeEnabled);
 }
 
 async function executeTrainerMove(moveId) {
@@ -658,7 +689,7 @@ async function executeTrainerMove(moveId) {
 
     const data = resp.data;
 
-    // Animate smoothly from the pre-event HP downward
+    // Sequentially present all backend combat events
     if (data.events && data.events.length > 0) {
       await animateEventSequence(data.events, data.battle_log);
     }
@@ -676,12 +707,13 @@ async function executeTrainerMove(moveId) {
     if (data.match_result || currentTrainerHp <= 0 || currentOpponentHp <= 0) {
       matchCompleted = true;
       setMoveControlsEnabled(false);
-      await wait(1200);
+      await wait(1000);
       showMatchSummary(data.match_result, data.completed_matches, data.completed_points);
       return;
     }
 
-    // Still in progress -> next trainer turn
+    // Short pause before announcing next trainer turn
+    await wait(300);
     presentTrainerTurn();
   } catch (err) {
     isEventAnimating = false;
@@ -707,18 +739,27 @@ async function animateEventSequence(events, serverLogs) {
 
       const attackerCombatant = document.getElementById(`${attackerSide}-combatant`);
       const defenderCombatant = document.getElementById(`${defenderSide}-combatant`);
+      const defenderDisplayName = isPlayer ? opponentDisplayName : playerDisplayName;
 
-      // Attacker lunges
+      // STEP 1 — ATTACK ANTICIPATION (~250ms)
+      attackerCombatant?.classList.add('is-anticipating');
+      // eslint-disable-next-line no-await-in-loop
+      await wait(250);
+      attackerCombatant?.classList.remove('is-anticipating');
+
+      // STEP 2 — ATTACK ANIMATION & MOVE ANNOUNCEMENT (~450ms)
       attackerCombatant?.classList.add('is-attacking');
       setCenterMessage(`${ev.pokemon} used ${ev.move}`, '');
       // eslint-disable-next-line no-await-in-loop
-      await wait(600);
+      await wait(450);
       attackerCombatant?.classList.remove('is-attacking');
 
-      // Defender hit flash
+      // STEP 3 — TARGET IMPACT & REACTION (~350ms)
       defenderCombatant?.classList.add('is-hit');
+      // eslint-disable-next-line no-await-in-loop
+      await wait(200);
 
-      // Add backend-authoritative type effectiveness text if applicable
+      // STEP 4 — DAMAGE MESSAGE & CHRONOLOGICAL LOG ENTRY (~400ms)
       let damageText = `Dealt ${ev.damage} damage`;
       if (ev.effectiveness === 'super_effective') {
         damageText += ' — Super effective!';
@@ -726,38 +767,44 @@ async function animateEventSequence(events, serverLogs) {
         damageText += ' — Not very effective!';
       }
       setCenterMessage(`${ev.pokemon} used ${ev.move}`, damageText);
+      if (ev.message) logEvent(ev.message);
+      // eslint-disable-next-line no-await-in-loop
+      await wait(250);
 
-      // Update defender health bar smoothly by deducting damage from current value
+      // STEP 5 — SMOOTH HEALTH BAR & NUMERIC DEPLETION (~650ms)
+      const startHp = isPlayer ? currentOpponentHp : currentTrainerHp;
+      const targetHp = Math.max(0, startHp - ev.damage);
+      const maxHp = isPlayer ? currentOpponentMaxHp : currentTrainerMaxHp;
+
       if (isPlayer) {
-        currentOpponentHp = Math.max(0, currentOpponentHp - ev.damage);
-        renderHealthBar('opponent', currentOpponentHp, currentOpponentMaxHp, opponentDisplayName);
+        currentOpponentHp = targetHp;
       } else {
-        currentTrainerHp = Math.max(0, currentTrainerHp - ev.damage);
-        renderHealthBar('player', currentTrainerHp, currentTrainerMaxHp, playerDisplayName);
+        currentTrainerHp = targetHp;
       }
 
-      if (ev.message) logEvent(ev.message);
+      // eslint-disable-next-line no-await-in-loop
+      await animateHealthBar(defenderSide, startHp, targetHp, maxHp, defenderDisplayName, 650);
+      defenderCombatant?.classList.remove('is-hit');
 
       // eslint-disable-next-line no-await-in-loop
-      await wait(700);
-      defenderCombatant?.classList.remove('is-hit');
-      // eslint-disable-next-line no-await-in-loop
-      await wait(350);
+      await wait(400);
+
     } else if (ev.type === 'faint') {
       matchCompleted = true;
       awaitingPlayerMove = false;
       setMoveControlsEnabled(false);
 
-      const isPlayerFaint = ev.actor === 'opponent'; // if opponent dealt fatal blow, player fainted
+      const isPlayerFaint = ev.actor === 'opponent'; // Fatal blow was against player
       const faintedSide = isPlayerFaint ? 'player' : 'opponent';
       const faintedCombatant = document.getElementById(`${faintedSide}-combatant`);
 
+      // eslint-disable-next-line no-await-in-loop
+      await wait(250);
       faintedCombatant?.classList.add('is-fainted');
       setCenterMessage(`${ev.pokemon} fainted!`, '');
       if (ev.message) logEvent(ev.message);
 
       console.log(`[BATTLE] Faint detected: ${ev.pokemon}`);
-
       // eslint-disable-next-line no-await-in-loop
       await wait(900);
     }
