@@ -1,7 +1,7 @@
 /* ============================================================
-   HOME PAGE
-   Wires the register/login/feedback forms to the auth layer and
-   renders the small atmosphere ticker from demo data.
+   HOME PAGE (EMERGENT DESIGN SYSTEM)
+   Handles registration, login, rules dialog, feedback submission,
+   and dynamic auth session detection via FastAPI backend.
    ============================================================ */
 
 function showFieldError(fieldEl, message) {
@@ -12,6 +12,52 @@ function showFieldError(fieldEl, message) {
 
 function clearFormErrors(formEl) {
   formEl.querySelectorAll('.field').forEach((fieldEl) => showFieldError(fieldEl, ''));
+}
+
+/* ---------- Auth Session Detection ---------- */
+async function initAuthState() {
+  try {
+    const trainer = typeof getCurrentTrainer === 'function' ? await getCurrentTrainer() : null;
+    if (trainer && trainer.username) {
+      // 1. Header nav: add dashboard link
+      const navAuthSlot = document.getElementById('nav-auth-slot');
+      if (navAuthSlot) {
+        navAuthSlot.innerHTML = `<a href="dashboard.html" class="active" data-testid="home-nav-link-dashboard">Dashboard</a>`;
+      }
+
+      // 2. Hero actions: primary CTA leads to dashboard
+      const heroActions = document.getElementById('hero-actions');
+      if (heroActions) {
+        heroActions.innerHTML = `
+          <a class="button button-gold" href="dashboard.html" data-testid="home-dashboard-button">
+            Enter dashboard <span>→</span>
+          </a>
+          <button class="button button-outline" type="button" data-open-modal="rules-modal" data-testid="home-rules-button-hero">
+            Game rules <span>→</span>
+          </button>
+        `;
+      }
+
+      // 3. Entry strip: item 2 links to dashboard
+      const entryRegisterBtn = document.getElementById('entry-register-btn');
+      if (entryRegisterBtn) {
+        const dashLink = document.createElement('a');
+        dashLink.className = 'entry-strip-item';
+        dashLink.href = 'dashboard.html';
+        dashLink.id = 'entry-register-btn';
+        dashLink.setAttribute('data-testid', 'home-register-action');
+        dashLink.innerHTML = `
+          <span>02</span>
+          <b>Dashboard</b>
+          <small>Enter trainer HQ →</small>
+        `;
+        entryRegisterBtn.replaceWith(dashLink);
+      }
+    }
+  } catch (err) {
+    // If backend is unreachable or not logged in, maintain default guest CTAs
+    console.debug('No active trainer session:', err);
+  }
 }
 
 /* ---------- Register Trainer ---------- */
@@ -33,22 +79,29 @@ function initRegisterForm() {
     const result = await registerTrainer({ username, email, password });
 
     if (!result.success) {
-      // Might be a field-level errors map
       if (result.errors && typeof result.errors === 'object') {
         Object.entries(result.errors).forEach(([field, message]) => {
           const fieldEl = form.querySelector(`[data-field="${field}"]`);
           if (fieldEl) showFieldError(fieldEl, message);
         });
       } else if (result.error) {
-        if (formStatus) formStatus.innerHTML = `<div class="field-error" style="min-height:auto">${result.error}</div>`;
+        if (formStatus) formStatus.innerHTML = `<div class="field-error">${result.error}</div>`;
       }
       return;
     }
 
     if (formStatus) {
-      formStatus.innerHTML = `<div class="form-success">Trainer registered. You can now enter the arena as ${result.trainer.username}.</div>`;
+      formStatus.innerHTML = `<div class="form-success">Trainer registered! You can now enter the arena as ${result.trainer.username}.</div>`;
     }
     form.reset();
+
+    // Auto-fill login identifier and prompt user to login
+    setTimeout(() => {
+      if (typeof closeModal === 'function') closeModal('register-modal');
+      const loginIdentifier = document.getElementById('login-identifier');
+      if (loginIdentifier) loginIdentifier.value = username;
+      if (typeof openModal === 'function') openModal('login-modal');
+    }, 1200);
   });
 }
 
@@ -71,7 +124,7 @@ function initLoginForm() {
 
     if (!result.success) {
       if (formStatus) {
-        formStatus.innerHTML = `<div class="field-error" style="min-height:auto">${result.error}</div>`;
+        formStatus.innerHTML = `<div class="field-error">${result.error}</div>`;
       }
       return;
     }
@@ -89,7 +142,6 @@ function validateFeedback({ email, message }) {
   return errors;
 }
 
-/** Placeholder for a future POST /feedback call. */
 function submitFeedback(payload) {
   const errors = validateFeedback(payload);
   if (Object.keys(errors).length > 0) return { success: false, errors };
@@ -100,7 +152,7 @@ function initFeedbackForm() {
   const form = document.getElementById('feedback-form');
   if (!form) return;
 
-  const formStatus = form.querySelector('.form-status');
+  const formStatus = document.getElementById('feedback-status');
 
   form.addEventListener('submit', (event) => {
     event.preventDefault();
@@ -122,43 +174,15 @@ function initFeedbackForm() {
     }
 
     if (formStatus) {
-      formStatus.innerHTML = '<div class="form-success">Thanks — your note has been sent to the developer.</div>';
+      formStatus.textContent = 'Feedback transmitted. Thank you, trainer.';
     }
     form.reset();
   });
-}
-
-/* ---------- Atmosphere ticker ---------- */
-function renderTicker() {
-  const track = document.getElementById('ticker-track');
-  if (!track) return;
-
-  const items = [
-    { label: 'Registered Trainers', value: DemoData.trainers.length + 240 },
-    { label: 'Battles Logged', value: 3821 },
-    { label: 'Pokémon in Dex', value: DemoData.pokemon.length + 782 },
-    { label: 'Top Trainer', value: DemoData.leaderboard[0].trainerName },
-  ];
-
-  const renderItems = () =>
-    items
-      .map(
-        (item) =>
-          `<span class="ticker-item">${item.label} <strong>${item.value}</strong></span>`
-      )
-      .join('');
-
-  // Two identical, explicitly-marked copies so the CSS marquee can
-  // translate exactly -50% and loop with no visible seam or gap.
-  track.innerHTML = `
-    <div class="ticker-set" data-copy="a">${renderItems()}</div>
-    <div class="ticker-set" data-copy="b">${renderItems()}</div>
-  `;
 }
 
 document.addEventListener('DOMContentLoaded', () => {
   initRegisterForm();
   initLoginForm();
   initFeedbackForm();
-  renderTicker();
+  initAuthState();
 });
