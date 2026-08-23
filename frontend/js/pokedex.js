@@ -1,61 +1,119 @@
 /* ============================================================
-   POKÉDEX
-   Renders the full Pokémon list as a responsive table from the
-   FastAPI backend (GET /pokemon), supports name/ID + type filtering,
-   and opens a detail modal with full base stats and Battle HP.
+   POKÉDEX — POKÉMON BATTLE ARENA (EMERGENT SYSTEM)
+   - Fetches 441 Pokémon list from FastAPI backend (GET /pokemon)
+   - Real-time client-side search, type filtering, category filtering, and multi-field sorting
+   - Detail modal with base stats, Battle HP, and learnable moves (GET /pokemon/{id}/moves)
+   - Context-aware back navigation (?from=home vs ?from=dashboard)
    ============================================================ */
 
 /** @type {any[]} */
 let allPokemon = [];
 const pokemonDetailCache = {};
+const moveOptionsCache = {};
 
-function typePillsHTML(types) {
-  if (!types || !Array.isArray(types)) return '';
-  return types.map((t) => `<span class="type-pill" data-type="${t}">${t}</span>`).join('');
+/* ---------- Helper: Category Formatting ---------- */
+function formatCategoryName(category) {
+  if (!category) return 'Standard';
+  const c = String(category).toLowerCase();
+  if (c === 'basic') return 'Standard';
+  if (c === 'legendary') return 'Legendary';
+  if (c === 'mythical') return 'Mythical';
+  if (c === 'ultra_beast' || c === 'ultra-beast') return 'Ultra Beast';
+  return c.charAt(0).toUpperCase() + c.slice(1);
 }
 
-function pokemonPortraitHTML(pokemonEntry, size) {
-  const path = `assets/images/pokemon/${pokemonEntry.id}.png`;
-  const initials = (pokemonEntry.name || '').slice(0, 2).toUpperCase();
-  return `<img src="${path}" alt="${pokemonEntry.name || ''}" width="${size}" height="${size}" onerror="this.replaceWith(Object.assign(document.createElement('span'), {textContent:'${initials}', style:'font-family:var(--font-mono);font-size:0.7rem;color:var(--text-faint);'}))" />`;
+function categoryBadgeHTML(category) {
+  if (!category) return '<span class="category-chip category-basic">STANDARD</span>';
+  const c = String(category).toLowerCase();
+  if (c === 'basic' || c === 'standard') {
+    return '<span class="category-chip category-basic">STANDARD</span>';
+  }
+  if (c === 'legendary') {
+    return '<span class="category-chip category-legendary">LEGENDARY</span>';
+  }
+  if (c === 'mythical') {
+    return '<span class="category-chip category-mythical">MYTHICAL</span>';
+  }
+  if (c === 'ultra_beast' || c === 'ultra-beast') {
+    return '<span class="category-chip category-ultra-beast">ULTRA BEAST</span>';
+  }
+  return `<span class="category-chip">${c.toUpperCase()}</span>`;
+}
+
+/* ---------- Helper: Type Formatting ---------- */
+function formatTypeName(t) {
+  if (!t) return '';
+  const s = String(t).trim();
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
 function getPokemonTypes(p) {
   const types = [];
-  if (p.type1) types.push(p.type1);
-  if (p.type2) types.push(p.type2);
+  if (p.type1) types.push(formatTypeName(p.type1));
+  if (p.type2) types.push(formatTypeName(p.type2));
   return types;
 }
 
+function typeChipsHTML(types) {
+  if (!types || !Array.isArray(types) || types.length === 0) return '';
+  return `<div class="type-chips-wrap">${types
+    .map((t) => `<span class="type-chip">${formatTypeName(t)}</span>`)
+    .join('')}</div>`;
+}
+
+/* ---------- Helper: Portrait HTML ---------- */
+function pokemonPortraitHTML(pokemonEntry, size = 36) {
+  const path = `assets/images/pokemon/${pokemonEntry.id}.png`;
+  const displayName = pokemonEntry.display_name || pokemonEntry.name || 'Pokémon';
+  const initials = displayName.slice(0, 2).toUpperCase();
+  return `<img src="${path}" alt="${displayName}" width="${size}" height="${size}" onerror="this.replaceWith(Object.assign(document.createElement('span'), {textContent:'${initials}', style:'font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--text-muted);'}))" />`;
+}
+
+/* ---------- Helper: Battle HP Calculation ---------- */
+function calculateBattleHP(hp, bst) {
+  return (3 * Number(hp || 0)) + Math.floor(Number(bst || 0) / 2);
+}
+
+/* ---------- Table Row Rendering ---------- */
 function renderDexRow(pokemonEntry) {
-  const bst = pokemonEntry.bst;
-  const battleHP = (3 * pokemonEntry.hp) + Math.floor(pokemonEntry.bst / 2);
-  const types = getPokemonTypes(pokemonEntry);
   const displayName = pokemonEntry.display_name || pokemonEntry.name;
+  const types = getPokemonTypes(pokemonEntry);
+  const bst = Number(pokemonEntry.bst || 0);
+  const battleHp = calculateBattleHP(pokemonEntry.hp, bst);
+  const categoryBadge = categoryBadgeHTML(pokemonEntry.pokemon_category);
 
   return `
-    <tr>
-      <td class="col-id" data-label="ID">#${String(pokemonEntry.id).padStart(3, '0')}</td>
-      <td class="col-name">
-        <span class="mon-portrait-sm">${pokemonPortraitHTML({ id: pokemonEntry.id, name: displayName }, 28)}</span>
-        ${displayName}
+    <tr data-pokemon-id="${pokemonEntry.id}" data-testid="pokedex-row-${pokemonEntry.id}">
+      <td class="col-id" data-label="Official ID">#${String(pokemonEntry.id).padStart(3, '0')}</td>
+      <td class="col-pokemon" data-label="Pokémon">
+        <div class="mon-cell">
+          <div class="mon-thumb">${pokemonPortraitHTML(pokemonEntry, 36)}</div>
+          <span class="mon-name">${displayName}</span>
+        </div>
       </td>
-      <td data-label="Types">${typePillsHTML(types)}</td>
-      <td class="col-stat" data-label="BST">${bst}</td>
-      <td class="col-battle-hp" data-label="Battle HP">${battleHP}</td>
-      <td data-label="View">
-        <button class="view-btn" type="button" data-view-pokemon="${pokemonEntry.id}" aria-label="View ${displayName} details">👁</button>
+      <td data-label="Types">${typeChipsHTML(types)}</td>
+      <td data-label="Category">${categoryBadge}</td>
+      <td class="stat-metric" style="text-align: right;" data-label="BST">${bst}</td>
+      <td class="battle-hp-metric" style="text-align: right;" data-label="Battle HP">${battleHp}</td>
+      <td style="text-align: right;" data-label="Action">
+        <button class="view-button" type="button" data-view-pokemon="${pokemonEntry.id}" data-testid="pokedex-view-${pokemonEntry.id}" aria-label="View ${displayName} details">
+          VIEW <span>↗</span>
+        </button>
       </td>
     </tr>
   `;
 }
 
-function filterPokemonList(pokemonList, query, type) {
+/* ---------- Filtering & Sorting Engine ---------- */
+function filterAndSortPokemon(list, { query, type, category, sort }) {
   const q = (query || '').trim().toLowerCase();
   const t = (type || '').trim().toLowerCase();
+  const c = (category || '').trim().toLowerCase();
 
-  return pokemonList.filter((p) => {
-    const nameMatch = !q ||
+  // 1. Filter
+  const filtered = list.filter((p) => {
+    const nameMatch =
+      !q ||
       (p.name && p.name.toLowerCase().includes(q)) ||
       (p.display_name && p.display_name.toLowerCase().includes(q)) ||
       String(p.id).includes(q);
@@ -63,86 +121,124 @@ function filterPokemonList(pokemonList, query, type) {
     const types = getPokemonTypes(p).map((x) => x.toLowerCase());
     const typeMatch = !t || types.includes(t);
 
-    return nameMatch && typeMatch;
+    const pCat = String(p.pokemon_category || 'basic').toLowerCase();
+    const categoryMatch = !c || pCat === c;
+
+    return nameMatch && typeMatch && categoryMatch;
   });
+
+  // 2. Sort
+  const sorted = [...filtered];
+  sorted.sort((a, b) => {
+    switch (sort) {
+      case 'id_desc':
+        return b.id - a.id;
+      case 'name_asc': {
+        const nameA = a.display_name || a.name || '';
+        const nameB = b.display_name || b.name || '';
+        return nameA.localeCompare(nameB);
+      }
+      case 'bst_desc':
+        return (b.bst - a.bst) || (a.id - b.id);
+      case 'battle_hp_desc': {
+        const hpA = calculateBattleHP(a.hp, a.bst);
+        const hpB = calculateBattleHP(b.hp, b.bst);
+        return (hpB - hpA) || (a.id - b.id);
+      }
+      case 'speed_desc':
+        return (b.speed - a.speed) || (a.id - b.id);
+      case 'attack_desc':
+        return (b.attack - a.attack) || (a.id - b.id);
+      case 'id_asc':
+      default:
+        return a.id - b.id;
+    }
+  });
+
+  return sorted;
 }
 
 function renderDexTable() {
   const query = document.getElementById('dex-search')?.value || '';
-  const type = document.getElementById('dex-type-filter')?.value || '';
-  const results = filterPokemonList(allPokemon, query, type);
+  const type = document.getElementById('dex-type')?.value || '';
+  const category = document.getElementById('dex-category')?.value || '';
+  const sort = document.getElementById('dex-sort')?.value || 'id_asc';
 
-  const tbody = document.getElementById('dex-table-body');
-  const count = document.getElementById('dex-count');
+  const results = filterAndSortPokemon(allPokemon, { query, type, category, sort });
 
-  if (count) {
-    count.textContent = `${results.length} of ${allPokemon.length} Pokémon`;
+  const tbody = document.getElementById('dex-body');
+  const countEl = document.getElementById('dex-count');
+
+  if (countEl) {
+    countEl.textContent = `Showing ${results.length} of ${allPokemon.length} Pokémon`;
   }
 
   if (!tbody) return;
 
   if (results.length === 0) {
-    tbody.innerHTML = '<tr class="dex-empty-row"><td colspan="6">No Pokémon match those filters.</td></tr>';
+    tbody.innerHTML = `
+      <tr class="dex-status-row">
+        <td colspan="7">No Pokémon match the current filters.</td>
+      </tr>
+    `;
     return;
   }
 
   tbody.innerHTML = results.map(renderDexRow).join('');
 
+  // Attach click handler exclusively to VIEW ↗ button (no whole-row click)
   tbody.querySelectorAll('[data-view-pokemon]').forEach((btn) => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const id = Number(btn.getAttribute('data-view-pokemon'));
       openDexDetail(id);
     });
   });
 }
 
-/* ---------- Filters ---------- */
+/* ---------- Initialize Filter Dropdowns & Listeners ---------- */
 function initDexFilters() {
-  const typeSelect = document.getElementById('dex-type-filter');
-  if (!typeSelect) return;
+  const typeSelect = document.getElementById('dex-type');
+  const categorySelect = document.getElementById('dex-category');
+  const sortSelect = document.getElementById('dex-sort');
+  const searchInput = document.getElementById('dex-search');
+  const resetBtn = document.getElementById('dex-reset');
 
-  // Collect distinct types from loaded Pokémon
-  const typeSet = new Set();
-  allPokemon.forEach((p) => {
-    getPokemonTypes(p).forEach((t) => typeSet.add(t));
-  });
+  if (typeSelect) {
+    const typeSet = new Set();
+    allPokemon.forEach((p) => {
+      getPokemonTypes(p).forEach((t) => typeSet.add(t));
+    });
 
-  const sortedTypes = Array.from(typeSet).sort();
+    const sortedTypes = Array.from(typeSet).sort();
+    typeSelect.innerHTML =
+      '<option value="">All Types</option>' +
+      sortedTypes
+        .map((t) => `<option value="${t.toLowerCase()}">${t}</option>`)
+        .join('');
+  }
 
-  typeSelect.innerHTML =
-    '<option value="">All Types</option>' +
-    sortedTypes
-      .map((type) => {
-        const label = type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
-        return `<option value="${type}">${label}</option>`;
-      })
-      .join('');
+  if (searchInput) searchInput.addEventListener('input', renderDexTable);
+  if (typeSelect) typeSelect.addEventListener('change', renderDexTable);
+  if (categorySelect) categorySelect.addEventListener('change', renderDexTable);
+  if (sortSelect) sortSelect.addEventListener('change', renderDexTable);
 
-  document.getElementById('dex-search')?.addEventListener('input', renderDexTable);
-  typeSelect.addEventListener('change', renderDexTable);
-
-  document.getElementById('dex-clear-filters')?.addEventListener('click', () => {
-    const searchInput = document.getElementById('dex-search');
-    if (searchInput) searchInput.value = '';
-    typeSelect.value = '';
-    renderDexTable();
-  });
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      if (searchInput) searchInput.value = '';
+      if (typeSelect) typeSelect.value = '';
+      if (categorySelect) categorySelect.value = '';
+      if (sortSelect) sortSelect.value = 'id_asc';
+      renderDexTable();
+    });
+  }
 }
 
-/* ---------- Detail modal ---------- */
-function dexStatCell(label, value, highlight) {
-  return `
-    <div class="dex-stat-cell ${highlight ? 'highlight' : ''}">
-      <span class="label">${label}</span>
-      <span class="value">${value}</span>
-    </div>
-  `;
-}
-
+/* ---------- Detail Modal & Moves Arsenal ---------- */
 async function openDexDetail(pokemonId) {
   let mon = pokemonDetailCache[pokemonId] || allPokemon.find((p) => p.id === pokemonId);
 
-  if (!mon || !mon.attack) {
+  if (!mon || typeof mon.attack === 'undefined') {
     try {
       const resp = await window.Api.getPokemon(pokemonId);
       if (resp && resp.data) {
@@ -150,7 +246,7 @@ async function openDexDetail(pokemonId) {
         pokemonDetailCache[pokemonId] = mon;
       }
     } catch (err) {
-      // Fall back to existing mon if fetch fails
+      // Keep existing mon fallback
     }
   }
 
@@ -158,64 +254,172 @@ async function openDexDetail(pokemonId) {
 
   const displayName = mon.display_name || mon.name;
   const types = getPokemonTypes(mon);
-  const battleHP = (3 * mon.hp) + Math.floor(mon.bst / 2);
+  const bst = Number(mon.bst || 0);
+  const battleHp = calculateBattleHP(mon.hp, bst);
+  const categoryBadge = categoryBadgeHTML(mon.pokemon_category, true);
 
-  const portraitEl = document.getElementById('dex-detail-portrait');
-  const idEl = document.getElementById('dex-detail-id');
-  const nameEl = document.getElementById('dex-detail-name');
-  const typesEl = document.getElementById('dex-detail-types');
-  const categoryEl = document.getElementById('dex-detail-category');
-  const statsEl = document.getElementById('dex-detail-stats');
-
-  if (portraitEl) portraitEl.innerHTML = pokemonPortraitHTML({ id: mon.id, name: displayName }, 80);
-  if (idEl) idEl.textContent = `#${String(mon.id).padStart(3, '0')}`;
-  if (nameEl) nameEl.textContent = displayName;
-  if (typesEl) typesEl.innerHTML = typePillsHTML(types);
-
-  if (categoryEl) {
-    const isSpecial = mon.pokemon_category && mon.pokemon_category.toLowerCase() !== 'standard';
-    categoryEl.innerHTML = isSpecial
-      ? `<span class="category-badge">${mon.pokemon_category.toUpperCase()}</span>`
-      : '';
+  const container = document.getElementById('pokemon-detail');
+  const eyebrowEl = document.getElementById('dex-detail-eyebrow');
+  if (eyebrowEl) {
+    eyebrowEl.textContent = `#${String(mon.id).padStart(3, '0')} / FIELD RECORD`;
   }
 
-  if (statsEl) {
-    statsEl.innerHTML = [
-      dexStatCell('HP', mon.hp),
-      dexStatCell('Attack', mon.attack),
-      dexStatCell('Defense', mon.defense),
-      dexStatCell('Sp. Attack', mon.special_attack),
-      dexStatCell('Sp. Defense', mon.special_defense),
-      dexStatCell('Speed', mon.speed),
-      dexStatCell('BST', mon.bst),
-      dexStatCell('Battle HP', battleHP, true),
-    ].join('');
+  if (container) {
+    container.innerHTML = `
+      <div class="pokemon-detail">
+        <div class="pokemon-detail-art">
+          ${pokemonPortraitHTML(mon, 140)}
+        </div>
+        <div class="pokemon-detail-meta">
+          <p class="eyebrow" style="margin-bottom: 4px;">#${String(mon.id).padStart(3, '0')} / DATA MATRIX</p>
+          <h2 id="dex-detail-name">${displayName}</h2>
+          <div class="types-and-category">
+            ${typeChipsHTML(types)}
+            ${categoryBadge}
+          </div>
+          <div class="detail-stats">
+            <span>HP <b>${mon.hp ?? 0}</b></span>
+            <span>Attack <b>${mon.attack ?? 0}</b></span>
+            <span>Defense <b>${mon.defense ?? 0}</b></span>
+            <span>Sp. Atk <b>${mon.special_attack ?? 0}</b></span>
+            <span>Sp. Def <b>${mon.special_defense ?? 0}</b></span>
+            <span>Speed <b>${mon.speed ?? 0}</b></span>
+            <span class="highlight">BST <b>${bst}</b></span>
+            <span class="highlight">Battle HP <b>${battleHp}</b></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="moves-section">
+        <div class="moves-header">
+          <p class="eyebrow">LEARNABLE MOVES ARSENAL</p>
+          <span class="pokedex-count" id="dex-moves-count">Loading moves…</span>
+        </div>
+        <div class="moves-table-wrap" id="dex-moves-container">
+          <div style="padding: 24px; text-align: center; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+            Loading learnable moves from database…
+          </div>
+        </div>
+      </div>
+    `;
   }
 
   openModal('pokemon-detail-modal');
+
+  // Fetch learnable moves from backend
+  await loadPokemonMoves(pokemonId);
 }
 
+async function loadPokemonMoves(pokemonId) {
+  const container = document.getElementById('dex-moves-container');
+  const countEl = document.getElementById('dex-moves-count');
+  if (!container) return;
+
+  try {
+    let moves = moveOptionsCache[pokemonId];
+
+    if (!moves) {
+      const resp = await window.Api.getPokemonMoves(pokemonId);
+      moves = (resp && resp.data && Array.isArray(resp.data)) ? resp.data : [];
+      moveOptionsCache[pokemonId] = moves;
+    }
+
+    if (countEl) {
+      countEl.textContent = `${moves.length} MOVES`;
+    }
+
+    if (moves.length === 0) {
+      container.innerHTML = `
+        <div style="padding: 24px; text-align: center; font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">
+          No moves recorded for this Pokémon.
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = `
+      <table class="moves-table">
+        <thead>
+          <tr>
+            <th scope="col">Move Name</th>
+            <th scope="col">Type</th>
+            <th scope="col">Category</th>
+            <th scope="col" style="text-align: right;">Power</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${moves
+            .map((m) => {
+              const moveName = m.display_name || m.move_name;
+              const moveType = formatTypeName(m.move_type);
+              const category = formatTypeName(m.category);
+              const power = Number(m.base_power || 0);
+              const powerHTML = power > 0
+                ? `<span class="move-power-cell">${power}</span>`
+                : `<span class="move-power-zero">—</span>`;
+
+              return `
+                <tr>
+                  <td class="move-name-cell">${moveName}</td>
+                  <td><span class="type-chip">${moveType}</span></td>
+                  <td class="move-category-cell">${category}</td>
+                  <td style="text-align: right;">${powerHTML}</td>
+                </tr>
+              `;
+            })
+            .join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    if (countEl) countEl.textContent = 'ERROR';
+    container.innerHTML = `
+      <div style="padding: 24px; text-align: center; font-family: var(--font-mono); font-size: 11px; color: var(--accent-danger, #ef4444);">
+        Failed to load move arsenal for this Pokémon.
+      </div>
+    `;
+  }
+}
+
+/* ---------- Load Initial Pokédex Data ---------- */
 async function loadPokedexData() {
-  const tbody = document.getElementById('dex-table-body');
+  const tbody = document.getElementById('dex-body');
+  const countEl = document.getElementById('dex-count');
+  const datasetTag = document.getElementById('dex-dataset-tag');
+
   if (tbody) {
-    tbody.innerHTML = '<tr class="dex-empty-row"><td colspan="6">Loading Pokédex data...</td></tr>';
+    tbody.innerHTML = `
+      <tr class="dex-status-row">
+        <td colspan="7">Loading Pokédex roster from database…</td>
+      </tr>
+    `;
   }
 
   try {
     const resp = await window.Api.getAllPokemon();
     allPokemon = (resp && resp.data && Array.isArray(resp.data)) ? resp.data : [];
 
-    // Pre-populate details cache
     allPokemon.forEach((p) => {
       pokemonDetailCache[p.id] = p;
     });
+
+    if (datasetTag) {
+      datasetTag.textContent = `${allPokemon.length} POKÉMON`;
+    }
 
     initDexFilters();
     renderDexTable();
   } catch (err) {
     if (tbody) {
-      tbody.innerHTML = '<tr class="dex-empty-row"><td colspan="6" style="color: var(--accent-danger, #ef4444);">Unable to load Pokédex. Please check your connection.</td></tr>';
+      tbody.innerHTML = `
+        <tr class="dex-status-row">
+          <td colspan="7" style="color: var(--accent-danger, #ef4444);">
+            Unable to load Pokédex. Please verify the backend service is running.
+          </td>
+        </tr>
+      `;
     }
+    if (countEl) countEl.textContent = 'Error loading dataset';
   }
 }
 
@@ -246,7 +450,7 @@ function initContextAwareNavigation() {
   }
 }
 
-// Run immediately for instant link accuracy
+// Immediate execution for instant link resolution
 initContextAwareNavigation();
 
 if (document.readyState === 'loading') {

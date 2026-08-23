@@ -1,90 +1,143 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-page="pokedex">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Pokédex — Pokémon Battle Arena</title>
+  <link rel="icon" href="data:," />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/pokedex.css" />
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
-  <header class="pokedex-page-header">
-    <a href="index.html" class="brand" id="brand-link">
-      <span class="brand-mark" aria-hidden="true"></span>
-      Battle Arena
-    </a>
-    <div class="header-actions">
-      <button class="theme-toggle" type="button" aria-pressed="false">
-        <span class="dot" aria-hidden="true"></span>
-        <span class="theme-label">Dark</span>
-      </button>
-      <a href="index.html" class="btn btn-ghost" id="nav-back-link" data-testid="pokedex-back-link">← Back to Home</a>
+  <!-- Emergent Site Header -->
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="index.html" id="brand-link" data-testid="brand-home">
+        <b>PBA</b><span>Pokémon Battle Arena</span>
+      </a>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
+        <a class="active" href="pokedex.html" data-testid="nav-pokedex">Pokédex</a>
+        <a href="leaderboard.html" data-testid="nav-leaderboard">Leaderboard</a>
+        <button class="icon-button theme-toggle" type="button" id="theme-toggle" data-testid="pokedex-theme-toggle" aria-label="Toggle theme">◐</button>
+        <a href="index.html" class="button button-outline" id="nav-back-link" data-testid="pokedex-back-link" style="font-size: 11px; padding: 6px 14px;">← Back to Home</a>
+      </nav>
     </div>
   </header>
 
-  <main id="main" class="pokedex-main" tabindex="-1">
-    <div class="view-header">
-      <span class="eyebrow">Full Roster Reference</span>
-      <h2>Pokédex</h2>
+  <!-- Main Page Shell -->
+  <main id="main" class="page-shell" tabindex="-1">
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">FIELD GUIDE / 001—441</p>
+        <h1>Poké<em>dex</em></h1>
+      </div>
+      <span class="season-tag" id="dex-dataset-tag" data-testid="pokedex-season-tag">441 POKÉMON</span>
     </div>
 
-    <div class="dex-filters">
-      <div class="field">
-        <label for="dex-search">Search</label>
-        <input type="text" id="dex-search" placeholder="Search by name or ID…" />
-      </div>
-      <div class="field field-inline">
-        <label for="dex-type-filter">Type</label>
-        <select id="dex-type-filter"></select>
-      </div>
-      <button class="btn btn-secondary" type="button" id="dex-clear-filters">Clear Filters</button>
+    <!-- Unified Filter Bar -->
+    <section class="filter-bar dex-filter-bar" data-testid="pokedex-filters">
+      <label>
+        Search name or ID
+        <input type="text" id="dex-search" placeholder="Search Charizard or 006…" data-testid="pokedex-filter-name" autocomplete="off" />
+      </label>
+      <label>
+        Type
+        <select id="dex-type" data-testid="pokedex-filter-type">
+          <option value="">All Types</option>
+        </select>
+      </label>
+      <label>
+        Category
+        <select id="dex-category" data-testid="pokedex-filter-category">
+          <option value="">All Categories</option>
+          <option value="basic">Standard</option>
+          <option value="legendary">Legendary</option>
+          <option value="mythical">Mythical</option>
+          <option value="ultra_beast">Ultra Beast</option>
+        </select>
+      </label>
+      <label>
+        Sort By
+        <select id="dex-sort" data-testid="pokedex-filter-sort">
+          <option value="id_asc">ID — Low to High</option>
+          <option value="id_desc">ID — High to Low</option>
+          <option value="name_asc">Name — A to Z</option>
+          <option value="bst_desc">BST — High to Low</option>
+          <option value="battle_hp_desc">Battle HP — High to Low</option>
+          <option value="speed_desc">Speed — High to Low</option>
+          <option value="attack_desc">Attack — High to Low</option>
+        </select>
+      </label>
+      <button class="button button-outline" type="button" id="dex-reset" data-testid="pokedex-reset-filters">
+        Reset filters
+      </button>
+    </section>
+
+    <!-- Meta / Count Bar -->
+    <div class="dex-meta-row">
+      <span class="pokedex-count" id="dex-count" data-testid="pokedex-count">Showing 441 of 441 Pokémon</span>
     </div>
 
-    <p class="pokedex-count" id="dex-count" style="margin-bottom: var(--space-3);"></p>
-
-    <div class="dex-table-wrap">
-      <table class="dex-table">
+    <!-- Table Container -->
+    <div class="table-wrap">
+      <table data-testid="pokedex-table">
         <thead>
           <tr>
-            <th scope="col">ID</th>
-            <th scope="col">Name</th>
+            <th scope="col" style="width: 100px;">Official ID</th>
+            <th scope="col">Pokémon</th>
             <th scope="col">Types</th>
-            <th scope="col">BST</th>
-            <th scope="col">Battle HP</th>
-            <th scope="col">View</th>
+            <th scope="col">Category</th>
+            <th scope="col" style="text-align: right;">BST</th>
+            <th scope="col" style="text-align: right;">Battle HP</th>
+            <th scope="col" style="text-align: right; width: 100px;"><span class="sr-only">Action</span></th>
           </tr>
         </thead>
-        <tbody id="dex-table-body"></tbody>
+        <tbody id="dex-body"></tbody>
       </table>
     </div>
   </main>
 
+  <!-- Emergent Footer -->
+  <footer class="site-footer">
+    <div class="footer-brand">
+      <span class="brand-name">PBA</span>
+      <span class="brand-sub">Pokémon Battle Arena</span>
+      <p class="footer-desc">Competitive 6-v-6 tactical battles. Build your team, read the matchup, and take the turn.</p>
+    </div>
+    <div class="footer-nav">
+      <span class="footer-heading">Arena Navigation</span>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="pokedex.html">Pokédex</a>
+        <a href="leaderboard.html">Leaderboard</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Pokémon Battle Arena. An independent tactical combat simulator.</span>
+      <span>All Pokémon media and trademarks belong to their respective copyright holders.</span>
+    </div>
+  </footer>
+
   <!-- ============================================================
-       MODAL: POKÉMON DETAIL
+       MODAL: POKÉMON DETAIL (EMERGENT TERMINAL)
        ============================================================ -->
-  <div class="modal-overlay" id="pokemon-detail-modal">
-    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="dex-detail-name">
+  <div class="modal-overlay" id="pokemon-detail-modal" role="dialog" aria-modal="true" aria-labelledby="dex-detail-name">
+    <div class="modal modal-wide dex-terminal-modal">
       <div class="modal-header">
-        <h2 class="visually-hidden">Pokémon Details</h2>
+        <span class="eyebrow" id="dex-detail-eyebrow">FIELD RECORD</span>
         <button class="modal-close" type="button" data-close-modal aria-label="Close details">✕</button>
       </div>
-
-      <div class="dex-detail-head">
-        <div class="dex-detail-portrait" id="dex-detail-portrait"></div>
-        <div>
-          <div class="dex-detail-id" id="dex-detail-id"></div>
-          <div class="dex-detail-name" id="dex-detail-name"></div>
-          <div id="dex-detail-types"></div>
-          <div style="margin-top: var(--space-2);" id="dex-detail-category"></div>
-        </div>
+      <div class="dex-detail-body" id="pokemon-detail">
+        <!-- Dynamic content injected by pokedex.js -->
       </div>
-
-      <div class="dex-stat-grid" id="dex-detail-stats"></div>
     </div>
   </div>
 
+  <!-- Scripts -->
   <script src="js/theme.js"></script>
   <script src="js/modal.js"></script>
   <script src="js/session.js"></script>
