@@ -5,50 +5,55 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Team Builder — Pokémon Battle Arena</title>
   <meta name="description" content="Build and manage your 6-Pokémon team and moves for the Pokémon Battle Arena." />
+  <link rel="icon" href="data:," />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/team.css" />
-  <link rel="stylesheet" href="css/dashboard.css" />
 </head>
-<body class="dashboard-page">
+<body>
   <a class="skip-link" href="#main">Skip to content</a>
 
   <!-- ============ SITE HEADER ============ -->
   <header class="site-header">
     <div class="site-header-inner">
-      <a class="brand" href="index.html" data-testid="brand-home">
+      <a class="brand" href="index.html" id="brand-link" data-testid="brand-home">
         <b>PBA</b>
         <span>Pokémon Battle Arena</span>
       </a>
       <nav class="site-nav" aria-label="Main Navigation">
-        <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
+        <a href="dashboard.html" class="active" data-testid="nav-dashboard">Dashboard</a>
         <a href="pokedex.html?from=dashboard" data-testid="nav-pokedex">Pokédex</a>
         <a href="leaderboard.html?from=dashboard" data-testid="nav-leaderboard">Leaderboard</a>
         <button class="icon-button theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" data-testid="team-theme-toggle">◐</button>
+        <a href="dashboard.html" class="button button-outline" id="nav-back-link" data-testid="team-back-link" style="font-size: 11px; padding: 6px 14px;">← Back to Dashboard</a>
       </nav>
     </div>
   </header>
 
   <!-- ============ MAIN CONTENT (.page-shell) ============ -->
-  <main id="main" class="page-shell">
+  <main id="main" class="page-shell" tabindex="-1">
     <!-- PAGE HEADING -->
     <div class="page-heading">
       <div>
-        <p class="eyebrow">ROSTER MANAGEMENT</p>
+        <p class="eyebrow">ROSTER MANAGEMENT / SIX SLOTS</p>
         <h1 id="team-builder-title">Team <em>Builder</em></h1>
+        <p class="heading-desc">Select 6 unique Pokémon and assign 4 valid moves to each before entering the battle arena.</p>
       </div>
-      <a class="text-link" href="dashboard.html" data-testid="team-back-dashboard">← Back to Dashboard</a>
+      <span class="season-tag" id="roster-count-badge" data-testid="team-roster-badge">0 / 6 POKÉMON</span>
     </div>
 
     <!-- NOTICES -->
-    <div class="card" id="team-exists-notice" hidden style="margin-bottom: var(--space-5);">
-      <p class="eyebrow" style="color: var(--gold);">TEAM ACTIVE</p>
-      <h3>Your six Pokémon are currently registered.</h3>
-      <p class="muted">You can adjust Pokémon slots or learnable moves below.</p>
+    <div class="card team-notice-card" id="team-exists-notice" hidden>
+      <div class="notice-header">
+        <span class="eyebrow" style="color: var(--accent-primary, #e0aa3e);">ACTIVE ROSTER</span>
+      </div>
+      <p class="muted">Your current 6-Pokémon team is loaded. You may adjust any slot, replace Pokémon, or edit moves below.</p>
     </div>
 
-    <div class="card" id="team-builder-empty-notice" hidden style="margin-bottom: var(--space-5);">
-      <p class="eyebrow">EMPTY ROSTER</p>
-      <p class="muted">Select six unique Pokémon and four moves for each to enter the battle arena.</p>
+    <div class="card team-notice-card" id="team-builder-empty-notice" hidden>
+      <div class="notice-header">
+        <span class="eyebrow">NEW ROSTER</span>
+      </div>
+      <p class="muted">Construct a valid six-Pokémon roster. Select each slot to choose your combatants and their four-move arsenals.</p>
     </div>
 
     <!-- TEAM BUILDER SECTION -->
@@ -61,7 +66,7 @@
       <!-- VALIDATION PANEL -->
       <div class="validation-panel" id="validation-panel" data-testid="validation-panel">
         <span class="v-title">Team Requirements</span>
-        <ul class="validation-list">
+        <ul class="validation-list" id="validation-list">
           <li>Choose 6 Pokémon.</li>
           <li>Assign 4 moves to each Pokémon.</li>
           <li>Maximum 1 Legendary, Mythical, or Ultra Beast.</li>
@@ -73,6 +78,7 @@
         <button class="button button-gold" type="button" id="save-team-btn" disabled data-testid="save-team-btn">
           Save team →
         </button>
+        <a href="dashboard.html" class="button button-outline" id="cancel-team-btn">Cancel</a>
         <span class="save-feedback" id="save-feedback" aria-live="polite"></span>
       </div>
     </section>
@@ -114,12 +120,22 @@
   <div class="modal-overlay" id="pokemon-picker-modal">
     <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="picker-title">
       <div class="modal-header">
-        <h2 id="picker-title">Select Pokémon</h2>
+        <div>
+          <span class="eyebrow" style="margin-bottom: 2px;">SLOT ASSIGNMENT</span>
+          <h2 id="picker-title">Select Pokémon</h2>
+        </div>
         <button class="modal-close" type="button" data-close-modal aria-label="Close picker">✕</button>
       </div>
       <div class="picker-filters">
-        <input type="text" id="picker-search" placeholder="Search by name or ID…" />
-        <select id="picker-type-filter"></select>
+        <input type="text" id="picker-search" placeholder="Search by name or #001…" />
+        <select id="picker-type-filter" aria-label="Filter by Type"></select>
+        <select id="picker-category-filter" aria-label="Filter by Category">
+          <option value="">All Categories</option>
+          <option value="basic">Standard</option>
+          <option value="legendary">Legendary</option>
+          <option value="mythical">Mythical</option>
+          <option value="ultra_beast">Ultra Beast</option>
+        </select>
       </div>
       <div class="picker-grid" id="picker-grid"></div>
     </div>
@@ -129,19 +145,22 @@
   <div class="modal-overlay" id="move-picker-modal">
     <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="move-picker-title">
       <div class="modal-header">
-        <h2 id="move-picker-title">Choose 4 Moves</h2>
+        <div>
+          <span class="eyebrow" style="margin-bottom: 2px;">ARSENAL SELECTION</span>
+          <h2 id="move-picker-title">Choose 4 Moves</h2>
+        </div>
         <button class="modal-close" type="button" data-close-modal aria-label="Close move picker">✕</button>
       </div>
       <div class="move-picker-target">
         <div class="mon-portrait" id="move-picker-mon-portrait"></div>
         <div>
           <div class="mon-name" id="move-picker-mon-name"></div>
-          <span class="muted" style="font-size:0.8rem;">Select 4 valid learnable moves</span>
+          <span class="heading-desc" style="font-size: 11px;">Select exactly four valid moves for this Pokémon</span>
         </div>
       </div>
       <div class="move-slots" id="move-slots"></div>
       <div class="move-pool" id="move-pool"></div>
-      <div style="margin-top: var(--space-4); text-align: right;">
+      <div style="margin-top: 18px; display: flex; justify-content: flex-end; gap: 12px;">
         <button class="button button-gold" type="button" id="move-picker-done">Done</button>
       </div>
     </div>
@@ -151,20 +170,23 @@
   <div class="modal-overlay" id="pokemon-action-modal">
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pokemon-action-title">
       <div class="modal-header">
-        <h2 id="pokemon-action-title">Manage Slot</h2>
+        <div>
+          <span class="eyebrow" style="margin-bottom: 2px;">SLOT OPTIONS</span>
+          <h2 id="pokemon-action-title">Manage Slot</h2>
+        </div>
         <button class="modal-close" type="button" data-close-modal aria-label="Close slot management">✕</button>
       </div>
       <div class="action-modal-preview">
         <div class="mon-portrait" id="action-modal-portrait"></div>
         <div>
           <div class="mon-name" id="action-modal-mon-name"></div>
-          <div id="action-modal-types"></div>
+          <div id="action-modal-types" class="type-chips-wrap"></div>
         </div>
       </div>
       <div class="action-modal-buttons">
-        <button class="button button-outline btn-block" type="button" id="action-edit-moves">Edit moves</button>
-        <button class="button button-outline btn-block" type="button" id="action-replace-pokemon">Replace Pokémon</button>
-        <button class="button button-outline btn-block btn-danger" type="button" id="action-remove-pokemon">Remove from team</button>
+        <button class="button button-outline btn-block" type="button" id="action-edit-moves">Edit moves ↗</button>
+        <button class="button button-outline btn-block" type="button" id="action-replace-pokemon">Replace Pokémon ↗</button>
+        <button class="button button-outline btn-block btn-danger" type="button" id="action-remove-pokemon">Remove from team ✕</button>
       </div>
     </div>
   </div>
@@ -176,8 +198,8 @@
         <h2 id="confirm-remove-title">Remove Pokémon?</h2>
         <button class="modal-close" type="button" data-close-modal aria-label="Close">✕</button>
       </div>
-      <p class="muted">Are you sure you want to remove this Pokémon from your roster?</p>
-      <div style="display:flex; gap:var(--space-3); margin-top:var(--space-4); justify-content:flex-end;">
+      <p class="muted" id="confirm-remove-text">Are you sure you want to remove this Pokémon from your roster?</p>
+      <div style="display:flex; gap: 12px; margin-top: 20px; justify-content:flex-end;">
         <button class="button button-outline" type="button" data-close-modal>Cancel</button>
         <button class="button button-gold" type="button" id="confirm-remove-btn">Remove</button>
       </div>

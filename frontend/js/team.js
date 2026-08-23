@@ -1,9 +1,10 @@
 /* ============================================================
-   TEAM BUILDER
-   (Integrated with FastAPI backend for Pokémon Catalog, Create,
-   Edit, Load, Save, and Move Options)
-   Note: preserves existing DOM structure and UX. Uses window.Api and window.Session.
-   No mock data or browser storage is used.
+   TEAM BUILDER — POKÉMON BATTLE ARENA (EMERGENT SYSTEM)
+   - Integrated with FastAPI backend for Pokémon Catalog (GET /pokemon),
+     Create (POST /team), Edit (PUT /team), Load (GET /team), and Move Options
+   - 3x2 Desktop Roster Grid with reactive dynamic counter & validation
+   - Category mapping: basic -> STANDARD, legendary -> LEGENDARY, mythical -> MYTHICAL, ultra_beast -> ULTRA BEAST
+   - Preserves all authoritative backend data contracts and navigation flows
    ============================================================ */
 
 const TEAM_SIZE = 6;
@@ -21,19 +22,79 @@ let pokemonCatalogById = {};
 let pokemonCatalogLoaded = false;
 let pokemonCatalogPromise = null;
 
-// Cache move options per pokemon id (from GET /team/{pokemon_id}/move-options)
+// Cache move options per pokemon id (from GET /team/{pokemon_id}/move-options or GET /pokemon/{id}/moves)
 const moveOptionsCache = {};
 let currentSection = 'create-team';
 
-function typePillsHTML(types) {
-  if (!types || !Array.isArray(types)) return '';
-  return types.map((t) => `<span class="type-pill" data-type="${t}">${t}</span>`).join('');
+/* ---------- Helper: Category Formatting & Badges ---------- */
+function formatCategoryName(category) {
+  if (!category) return 'Standard';
+  const c = String(category).toLowerCase().trim();
+  if (c === 'basic') return 'Standard';
+  if (c === 'legendary') return 'Legendary';
+  if (c === 'mythical') return 'Mythical';
+  if (c === 'ultra_beast' || c === 'ultra-beast' || c === 'ultra beast') return 'Ultra Beast';
+  return c.charAt(0).toUpperCase() + c.slice(1);
 }
 
-function pokemonPortraitHTML(pokemonEntry, size) {
+function categoryBadgeHTML(category) {
+  if (!category) return '<span class="category-chip category-basic">STANDARD</span>';
+  const c = String(category).toLowerCase().trim();
+  if (c === 'basic' || c === 'standard') {
+    return '<span class="category-chip category-basic">STANDARD</span>';
+  }
+  if (c === 'legendary') {
+    return '<span class="category-chip category-legendary">LEGENDARY</span>';
+  }
+  if (c === 'mythical') {
+    return '<span class="category-chip category-mythical">MYTHICAL</span>';
+  }
+  if (c === 'ultra_beast' || c === 'ultra-beast' || c === 'ultra beast') {
+    return '<span class="category-chip category-ultra-beast">ULTRA BEAST</span>';
+  }
+  return `<span class="category-chip">${c.toUpperCase()}</span>`;
+}
+
+/* ---------- Helper: Type Formatting & Chips ---------- */
+function formatTypeName(t) {
+  if (!t) return '';
+  const s = String(t).trim();
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
+}
+
+function getPokemonTypes(p) {
+  if (!p) return [];
+  const raw = [];
+  if (Array.isArray(p.types) && p.types.length > 0) {
+    p.types.forEach((t) => raw.push(t));
+  } else {
+    if (p.type1) raw.push(p.type1);
+    if (p.type2) raw.push(p.type2);
+  }
+  return raw.map(formatTypeName);
+}
+
+function typeChipsHTML(types) {
+  if (!types || !Array.isArray(types)) return '';
+  return types.map((t) => `<span class="type-chip">${formatTypeName(t)}</span>`).join('');
+}
+
+function pokemonPortraitHTML(pokemonEntry, size = 48) {
   const path = `assets/images/pokemon/${pokemonEntry.id}.png`;
-  const initials = (pokemonEntry.name || '').slice(0, 2).toUpperCase();
-  return `<img src="${path}" alt="${pokemonEntry.name || ''}" width="${size}" height="${size}" onerror="this.replaceWith(Object.assign(document.createElement('span'), {textContent:'${initials}', style:'font-family:var(--font-mono);font-size:0.7rem;color:var(--text-faint);'}))" />`;
+  const displayName = pokemonEntry.display_name || pokemonEntry.name || 'Pokémon';
+  const initials = displayName.slice(0, 2).toUpperCase();
+  return `<img src="${path}" alt="${displayName}" width="${size}" height="${size}" onerror="this.replaceWith(Object.assign(document.createElement('span'), {textContent:'${initials}', style:'font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--text-muted);'}))" />`;
+}
+
+function getPokemonDisplayName(p) {
+  if (!p) return '';
+  return p.display_name || p.name || '';
+}
+
+function isRestrictedCategory(pokemonEntry) {
+  if (!pokemonEntry) return false;
+  const cat = String(pokemonEntry.pokemon_category || pokemonEntry.category || '').toLowerCase().trim();
+  return cat === 'legendary' || cat === 'mythical' || cat === 'ultra_beast' || cat === 'ultra-beast' || cat === 'ultra beast';
 }
 
 // Small helper to load Api/Session if not yet present
@@ -59,35 +120,6 @@ function _loadScript(src) {
 async function ensureApiLoaded() {
   if (!window.Session) await _loadScript('js/session.js');
   if (!window.Api) await _loadScript('js/api.js');
-}
-
-function formatTypeName(t) {
-  if (!t) return '';
-  const s = String(t).trim();
-  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-}
-
-function getPokemonTypes(p) {
-  if (!p) return [];
-  const raw = [];
-  if (Array.isArray(p.types) && p.types.length > 0) {
-    p.types.forEach((t) => raw.push(t));
-  } else {
-    if (p.type1) raw.push(p.type1);
-    if (p.type2) raw.push(p.type2);
-  }
-  return raw.map(formatTypeName);
-}
-
-function getPokemonDisplayName(p) {
-  if (!p) return '';
-  return p.display_name || p.name || '';
-}
-
-function isRestrictedCategory(pokemonEntry) {
-  if (!pokemonEntry) return false;
-  const cat = String(pokemonEntry.pokemon_category || pokemonEntry.category || '').toLowerCase().trim();
-  return cat === 'legendary' || cat === 'mythical' || cat === 'ultra_beast' || cat === 'ultra beast';
 }
 
 async function ensurePokemonCatalogLoaded() {
@@ -135,139 +167,55 @@ function getMoveName(moveId, pokemonId) {
       const m = moveOptionsCache[pokemonId].find((mo) => mo.id === idNum);
       if (m) return m.display_name || m.move_name || String(idNum);
     }
-    return String(moveId);
+    return `Move #${moveId}`;
   } catch (e) {
     return String(moveId);
   }
 }
 
+/* ---------- Dynamic Roster Counter ---------- */
+function updateRosterCounter() {
+  const badge = document.getElementById('roster-count-badge');
+  if (!badge) return;
+  const filledCount = teamDraft.filter(Boolean).length;
+  badge.textContent = `${filledCount} / ${TEAM_SIZE} POKÉMON`;
+  badge.classList.toggle('is-complete', filledCount === TEAM_SIZE);
+}
+
 /* ============================================================
-   ENTRY POINTS (called by setActiveSection in dashboard.js)
+   ENTRY POINTS
    ============================================================ */
-
-/** Create Team: blank builder only. Uses GET /team to determine if trainer already has a team. */
-async function renderCreateTeam() {
-  const existsNotice = document.getElementById('team-exists-notice');
-  const nothingNotice = document.getElementById('team-builder-empty-notice');
-  const builder = document.getElementById('team-builder');
-
-  nothingNotice.hidden = true;
-  existsNotice.hidden = true;
-  builder.hidden = true;
-  document.getElementById('team-builder-title').textContent = 'Create Team';
-
-  // Check backend for existing team
-  try {
-    await ensureApiLoaded();
-    await ensurePokemonCatalogLoaded();
-    const resp = await window.Api.getTeam();
-    // If we get here, trainer already has a team
-    existsNotice.hidden = false;
-    builder.hidden = true;
-    return;
-  } catch (err) {
-    if (err && err.name === 'ApiError' && err.status === 404) {
-      // No team yet -> allow create
-      existsNotice.hidden = true;
-      builder.hidden = false;
-      enterTeamBuilder(new Array(TEAM_SIZE).fill(null));
-      return;
-    }
-    if (err && err.name === 'ApiError' && (err.status === 401 || err.status === 403)) {
-      window.location.href = 'index.html';
-      return;
-    }
-
-    existsNotice.hidden = false;
-    builder.hidden = true;
-    existsNotice.textContent = 'Unable to check existing team: ' + (err?.message || 'Connection error');
-    return;
-  }
-}
-
-/** Edit Team: the only place a saved team can be modified. Loads team from server using GET /team. */
-async function renderEditTeam() {
-  const existsNotice = document.getElementById('team-exists-notice');
-  const nothingNotice = document.getElementById('team-builder-empty-notice');
-  const builder = document.getElementById('team-builder');
-
-  existsNotice.hidden = true;
-  nothingNotice.hidden = true;
-  builder.hidden = true;
-  document.getElementById('team-builder-title').textContent = 'Edit Team';
-
-  try {
-    await ensureApiLoaded();
-    await ensurePokemonCatalogLoaded();
-    const resp = await window.Api.getTeam();
-    if (resp && resp.data && resp.data.slots) {
-      // Map server team to teamDraft shape and cache move metadata
-      const slots = resp.data.slots;
-      const mapped = new Array(TEAM_SIZE).fill(null);
-      slots.forEach((slot) => {
-        const idx = slot.slot - 1;
-        mapped[idx] = { pokemonId: slot.pokemon_id, moveIds: slot.move_ids.map((id) => Number(id)) };
-        if (slot.moves && Array.isArray(slot.moves)) {
-          if (!moveOptionsCache[slot.pokemon_id]) {
-            moveOptionsCache[slot.pokemon_id] = [];
-          }
-          slot.moves.forEach((m) => {
-            if (!moveOptionsCache[slot.pokemon_id].some((existing) => existing.id === Number(m.id))) {
-              moveOptionsCache[slot.pokemon_id].push({
-                id: Number(m.id),
-                display_name: m.display_name || m.move_name,
-                move_type: m.move_type,
-                category: m.category,
-                base_power: m.base_power,
-              });
-            }
-          });
-        }
-      });
-      enterTeamBuilder(mapped);
-      builder.hidden = false;
-      return;
-    }
-  } catch (err) {
-    if (err && err.name === 'ApiError' && err.status === 404) {
-      // No team to edit
-      nothingNotice.hidden = false;
-      builder.hidden = true;
-      return;
-    }
-    if (err && err.name === 'ApiError' && (err.status === 401 || err.status === 403)) {
-      window.location.href = 'index.html';
-      return;
-    }
-
-    nothingNotice.hidden = false;
-    builder.hidden = true;
-    nothingNotice.textContent = 'Unable to load your team: ' + (err?.message || 'Connection error');
-    return;
-  }
-}
-
-/** Shared setup once either entry point has decided the builder should show. */
 function enterTeamBuilder(initialDraft) {
   teamDraft = initialDraft;
+  updateRosterCounter();
   renderTeamSlots();
   renderValidation();
-  document.getElementById('save-feedback').textContent = '';
+  const feedback = document.getElementById('save-feedback');
+  if (feedback) feedback.textContent = '';
+  
+  const saveBtn = document.getElementById('save-team-btn');
+  if (saveBtn) {
+    saveBtn.textContent = currentSection === 'create-team' ? 'Save team →' : 'Update team →';
+  }
 }
 
 /* ============================================================
-   SLOT GRID
+   SLOT GRID (3x2 Desktop Layout)
    ============================================================ */
 function renderTeamSlots() {
   const grid = document.getElementById('team-slot-grid');
   if (!grid) return;
+
   grid.innerHTML = teamDraft
     .map((slot, index) => {
+      const slotNumStr = String(index + 1).padStart(2, '0');
+
       if (!slot) {
         return `
-          <button class="team-slot slot-empty reticle" type="button" data-slot="${index}">
+          <button class="team-slot slot-empty" type="button" data-slot="${index}" data-testid="team-slot-${index + 1}" aria-label="Slot ${index + 1}: Empty. Click to add Pokémon">
             <span class="plus" aria-hidden="true">+</span>
-            <span class="plus-label">Add Pokémon</span>
+            <span class="slot-empty-title">Add Pokémon</span>
+            <span class="slot-empty-sub">Slot #${slotNumStr} · 4 Moves Required</span>
           </button>
         `;
       }
@@ -275,23 +223,32 @@ function renderTeamSlots() {
       const mon = getPokemonById(slot.pokemonId);
       const displayName = mon ? (mon.display_name || mon.name) : `Pokémon #${slot.pokemonId}`;
       const types = mon ? getPokemonTypes(mon) : [];
+      const categoryBadge = categoryBadgeHTML(mon ? (mon.pokemon_category || mon.category) : 'basic');
       const moveCount = slot.moveIds.length;
-      const moveSummaryClass = moveCount === MOVES_PER_POKEMON ? '' : 'incomplete';
-      const moveSummaryText =
-        moveCount === MOVES_PER_POKEMON
-          ? slot.moveIds.map((id) => getMoveName(id, slot.pokemonId)).join(' · ')
-          : `${moveCount}/${MOVES_PER_POKEMON} moves selected`;
 
       return `
-        <button class="team-slot slot-filled reticle" type="button" data-slot="${index}">
-          <div class="slot-top">
-            <div class="mon-portrait">${pokemonPortraitHTML({ id: slot.pokemonId, name: displayName }, 40)}</div>
+        <button class="team-slot slot-filled" type="button" data-slot="${index}" data-testid="team-slot-${index + 1}" aria-label="Slot ${index + 1}: ${displayName}. Click to manage">
+          <div class="slot-header">
+            <span class="slot-index-badge">SLOT #${slotNumStr}</span>
+            ${categoryBadge}
+          </div>
+          <div class="slot-top-row">
+            <div class="slot-portrait">${pokemonPortraitHTML({ id: slot.pokemonId, name: displayName }, 52)}</div>
             <div>
-              <div class="mon-name">${displayName}</div>
-              <div>${typePillsHTML(types)}</div>
+              <div class="slot-name">${displayName}</div>
+              <div class="type-chips-wrap">${typeChipsHTML(types)}</div>
             </div>
           </div>
-          <div class="move-summary ${moveSummaryClass}">${moveSummaryText}</div>
+          <div class="slot-moves-list">
+            ${Array.from({ length: MOVES_PER_POKEMON })
+              .map((_, mi) => {
+                const mid = slot.moveIds[mi];
+                if (!mid) return '<span class="slot-move-item is-empty">—</span>';
+                return `<span class="slot-move-item">${getMoveName(mid, slot.pokemonId)}</span>`;
+              })
+              .join('')}
+            ${moveCount < MOVES_PER_POKEMON ? `<div class="slot-move-warning">${moveCount}/4 moves selected</div>` : ''}
+          </div>
         </button>
       `;
     })
@@ -301,9 +258,15 @@ function renderTeamSlots() {
     slotEl.addEventListener('click', () => {
       const index = Number(slotEl.getAttribute('data-slot'));
       activeSlotIndex = index;
-      teamDraft[index] ? openPokemonEditModal(index) : openPokemonPicker(index);
+      if (teamDraft[index]) {
+        openPokemonEditModal(index);
+      } else {
+        openPokemonPicker(index);
+      }
     });
   });
+
+  updateRosterCounter();
 }
 
 /* ============================================================
@@ -311,46 +274,63 @@ function renderTeamSlots() {
    ============================================================ */
 function openPokemonEditModal(index) {
   activeSlotIndex = index;
-  const mon = getPokemonById(teamDraft[index].pokemonId);
-  const displayName = mon ? (mon.display_name || mon.name) : `Pokémon #${teamDraft[index].pokemonId}`;
+  const slot = teamDraft[index];
+  if (!slot) return;
+  const mon = getPokemonById(slot.pokemonId);
+  const displayName = mon ? (mon.display_name || mon.name) : `Pokémon #${slot.pokemonId}`;
+  const types = mon ? getPokemonTypes(mon) : [];
+
   document.getElementById('pokemon-action-title').textContent = displayName;
+  document.getElementById('action-modal-portrait').innerHTML = pokemonPortraitHTML({ id: slot.pokemonId, name: displayName }, 56);
+  document.getElementById('action-modal-mon-name').textContent = displayName;
+  document.getElementById('action-modal-types').innerHTML = typeChipsHTML(types);
+
   openModal('pokemon-action-modal');
 }
 
 function initPokemonActionButtons() {
-  document.getElementById('action-edit-moves').addEventListener('click', () => {
-    closeModal('pokemon-action-modal');
-    editPokemonMoves(activeSlotIndex);
-  });
+  const editMovesBtn = document.getElementById('action-edit-moves');
+  const replaceMonBtn = document.getElementById('action-replace-pokemon');
+  const removeMonBtn = document.getElementById('action-remove-pokemon');
 
-  document.getElementById('action-replace-pokemon').addEventListener('click', () => {
-    closeModal('pokemon-action-modal');
-    replacePokemon(activeSlotIndex);
-  });
+  if (editMovesBtn) {
+    editMovesBtn.addEventListener('click', () => {
+      closeModal('pokemon-action-modal');
+      editPokemonMoves(activeSlotIndex);
+    });
+  }
 
-  document.getElementById('action-remove-pokemon').addEventListener('click', () => {
-    closeModal('pokemon-action-modal');
-    promptRemovePokemon(activeSlotIndex);
-  });
+  if (replaceMonBtn) {
+    replaceMonBtn.addEventListener('click', () => {
+      closeModal('pokemon-action-modal');
+      replacePokemon(activeSlotIndex);
+    });
+  }
+
+  if (removeMonBtn) {
+    removeMonBtn.addEventListener('click', () => {
+      closeModal('pokemon-action-modal');
+      promptRemovePokemon(activeSlotIndex);
+    });
+  }
 }
 
-/** Edit Moves: only touches this slot's moveIds — the Pokémon itself never changes. */
 function editPokemonMoves(index) {
   activeSlotIndex = index;
   openMovePicker(index);
 }
 
-/** Replace Pokémon: picking a new Pokémon for this slot, then its four moves. */
 function replacePokemon(index) {
   activeSlotIndex = index;
   openPokemonPicker(index);
 }
 
-/* ---------- Remove, with confirmation ---------- */
 function promptRemovePokemon(index) {
   activeSlotIndex = index;
-  const mon = getPokemonById(teamDraft[index].pokemonId);
-  const displayName = mon ? (mon.display_name || mon.name) : `Pokémon #${teamDraft[index].pokemonId}`;
+  const slot = teamDraft[index];
+  if (!slot) return;
+  const mon = getPokemonById(slot.pokemonId);
+  const displayName = mon ? (mon.display_name || mon.name) : `Pokémon #${slot.pokemonId}`;
   document.getElementById('confirm-remove-title').textContent = `Remove ${displayName}?`;
   document.getElementById('confirm-remove-text').textContent =
     `Are you sure you want to remove ${displayName} from your team?`;
@@ -361,17 +341,21 @@ function removePokemon(index) {
   teamDraft[index] = null;
   renderTeamSlots();
   renderValidation();
+  updateRosterCounter();
 }
 
 function initConfirmRemoveButton() {
-  document.getElementById('confirm-remove-btn').addEventListener('click', () => {
-    removePokemon(activeSlotIndex);
-    closeModal('confirm-remove-modal');
-  });
+  const btn = document.getElementById('confirm-remove-btn');
+  if (btn) {
+    btn.addEventListener('click', () => {
+      removePokemon(activeSlotIndex);
+      closeModal('confirm-remove-modal');
+    });
+  }
 }
 
 /* ============================================================
-   POKÉMON PICKER (used for filling an empty slot AND for Replace)
+   POKÉMON PICKER (Search, Type, Category Filters)
    ============================================================ */
 function pickerBlockReason(pokemonEntry) {
   const alreadyInTeam = teamDraft.some(
@@ -390,9 +374,10 @@ function pickerBlockReason(pokemonEntry) {
   return null;
 }
 
-function filterPokemonCatalog(query, type) {
+function filterPokemonCatalog(query, type, category) {
   const q = (query || '').trim().toLowerCase();
   const t = (type || '').trim().toLowerCase();
+  const c = (category || '').trim().toLowerCase();
 
   return pokemonCatalog.filter((p) => {
     const nameStr = (p.display_name || p.name || '').toLowerCase();
@@ -402,19 +387,23 @@ function filterPokemonCatalog(query, type) {
     const types = getPokemonTypes(p).map((x) => x.toLowerCase());
     const matchesType = !t || types.includes(t);
 
-    return matchesName && matchesType;
+    const pCat = String(p.pokemon_category || p.category || 'basic').toLowerCase().trim();
+    const matchesCategory = !c || pCat === c;
+
+    return matchesName && matchesType && matchesCategory;
   });
 }
 
 function renderPokemonPickerResults() {
   const query = document.getElementById('picker-search')?.value || '';
   const type = document.getElementById('picker-type-filter')?.value || '';
-  const results = filterPokemonCatalog(query, type);
+  const category = document.getElementById('picker-category-filter')?.value || '';
+  const results = filterPokemonCatalog(query, type, category);
   const grid = document.getElementById('picker-grid');
   if (!grid) return;
 
   if (results.length === 0) {
-    grid.innerHTML = '<p class="picker-empty">No Pokémon match those filters.</p>';
+    grid.innerHTML = '<p class="picker-empty" style="grid-column:1/-1; text-align:center; padding:32px; color:var(--text-muted); font-family:var(--font-mono); font-size:12px; text-transform:uppercase;">No Pokémon match those filters.</p>';
     return;
   }
 
@@ -423,13 +412,13 @@ function renderPokemonPickerResults() {
       const blockReason = pickerBlockReason(mon);
       const displayName = mon.display_name || mon.name;
       const types = getPokemonTypes(mon);
-      const categoryLabel = mon.pokemon_category || mon.category;
+      const catBadge = categoryBadgeHTML(mon.pokemon_category || mon.category);
       return `
-        <button class="picker-option" type="button" data-pokemon-id="${mon.id}" ${blockReason ? 'disabled' : ''}>
+        <button class="picker-option" type="button" data-pokemon-id="${mon.id}" ${blockReason ? 'disabled' : ''} aria-label="Select ${displayName}">
           <div class="mon-portrait">${pokemonPortraitHTML({ id: mon.id, name: displayName }, 56)}</div>
           <div class="mon-name">${displayName}</div>
-          <div>${typePillsHTML(types)}</div>
-          ${isRestrictedCategory(mon) ? `<span class="category-badge">${categoryLabel}</span>` : ''}
+          <div class="type-chips-wrap">${typeChipsHTML(types)}</div>
+          ${catBadge}
           ${blockReason ? `<span class="block-reason">${blockReason}</span>` : ''}
         </button>
       `;
@@ -448,11 +437,13 @@ async function openPokemonPicker(index) {
   activeSlotIndex = index;
   const searchInput = document.getElementById('picker-search');
   const typeFilter = document.getElementById('picker-type-filter');
+  const catFilter = document.getElementById('picker-category-filter');
   if (searchInput) searchInput.value = '';
   if (typeFilter) typeFilter.value = '';
+  if (catFilter) catFilter.value = '';
 
   const grid = document.getElementById('picker-grid');
-  if (grid) grid.innerHTML = '<p class="picker-empty">Loading Pokémon...</p>';
+  if (grid) grid.innerHTML = '<p class="picker-empty" style="grid-column:1/-1; text-align:center; padding:32px; color:var(--text-muted); font-family:var(--font-mono); font-size:12px; text-transform:uppercase;">Loading Pokémon roster…</p>';
   openModal('pokemon-picker-modal');
 
   try {
@@ -460,18 +451,17 @@ async function openPokemonPicker(index) {
     renderPokemonPickerResults();
   } catch (err) {
     if (grid) {
-      grid.innerHTML = `<p class="picker-empty">Unable to load Pokémon list: ${err?.message || 'Error'}</p>`;
+      grid.innerHTML = `<p class="picker-empty" style="grid-column:1/-1; text-align:center; padding:32px; color:var(--accent-danger, #ef4444); font-family:var(--font-mono); font-size:12px;">Unable to load Pokémon list: ${err?.message || 'Error'}</p>`;
     }
   }
 }
 
-/** Fills (or replaces) a slot with a new Pokémon and always moves on to move
- *  selection — a replacement Pokémon must get its own four moves configured. */
 function selectPokemonForSlot(index, pokemonId) {
   teamDraft[index] = { pokemonId, moveIds: [] };
   closeModal('pokemon-picker-modal');
   renderTeamSlots();
   renderValidation();
+  updateRosterCounter();
   openMovePicker(index);
 }
 
@@ -498,16 +488,16 @@ function initPokemonPickerTypeOptions() {
 function initPokemonPickerFilters() {
   document.getElementById('picker-search')?.addEventListener('input', renderPokemonPickerResults);
   document.getElementById('picker-type-filter')?.addEventListener('change', renderPokemonPickerResults);
+  document.getElementById('picker-category-filter')?.addEventListener('change', renderPokemonPickerResults);
   initPokemonPickerTypeOptions();
 }
 
 /* ============================================================
    MOVE PICKER
-   Used both for a fresh/replacement Pokémon and for Edit Moves —
-   in every case it only ever writes to teamDraft[index].moveIds.
    ============================================================ */
 async function renderMovePicker() {
   const slot = teamDraft[activeSlotIndex];
+  if (!slot) return;
   const mon = getPokemonById(slot.pokemonId);
   const displayName = mon ? (mon.display_name || mon.name) : `Pokémon #${slot.pokemonId}`;
 
@@ -522,7 +512,7 @@ async function renderMovePicker() {
       const moveName = getMoveName(moveId, slot.pokemonId);
       return `
         <div class="move-slot-chip is-filled">
-          ${moveName}
+          <span>${moveName}</span>
           <button type="button" data-remove-move="${moveId}" aria-label="Remove ${moveName}">✕</button>
         </div>
       `;
@@ -540,12 +530,10 @@ async function renderMovePicker() {
   const pool = document.getElementById('move-pool');
   const atLimit = slot.moveIds.length >= MOVES_PER_POKEMON;
 
-  // Show loading indicator if move options need fetching
   if (pool && (!moveOptionsCache[slot.pokemonId] || moveOptionsCache[slot.pokemonId].length < 10)) {
-    pool.innerHTML = '<div class="picker-empty">Loading move options...</div>';
+    pool.innerHTML = '<div class="picker-empty" style="grid-column:1/-1; text-align:center; padding:24px; color:var(--text-muted); font-family:var(--font-mono); font-size:11px;">Loading learnable moves…</div>';
   }
 
-  // Ensure we have move options from backend
   try {
     await ensureApiLoaded();
     if (!moveOptionsCache[slot.pokemonId] || moveOptionsCache[slot.pokemonId].length < 10) {
@@ -573,7 +561,7 @@ async function renderMovePicker() {
       window.location.href = 'index.html';
       return;
     }
-    pool.innerHTML = `<div class="picker-empty">Unable to load move options: ${err?.message || 'Connection error'}</div>`;
+    pool.innerHTML = `<div class="picker-empty" style="grid-column:1/-1; text-align:center; padding:24px; color:var(--accent-danger, #ef4444); font-family:var(--font-mono); font-size:11px;">Unable to load move options: ${err?.message || 'Connection error'}</div>`;
     return;
   }
 
@@ -583,13 +571,14 @@ async function renderMovePicker() {
     .map((move) => {
       const alreadySelected = slot.moveIds.map(Number).includes(move.id);
       const disabled = alreadySelected || atLimit;
+      const powerDisplay = move.base_power ? `PWR ${move.base_power}` : 'STATUS';
       return `
-        <button class="move-option" type="button" data-move-id="${move.id}" ${disabled ? 'disabled' : ''}>
+        <button class="move-option" type="button" data-move-id="${move.id}" ${disabled ? 'disabled' : ''} aria-label="Select ${move.display_name}">
           <span class="move-name">${move.display_name}</span>
           <span class="move-meta">
-            <span class="type-pill" data-type="${move.move_type}">${move.move_type}</span>
+            <span class="type-chip">${formatTypeName(move.move_type)}</span>
             <span>${move.category}</span>
-            <span>PWR ${move.base_power}</span>
+            <span>${powerDisplay}</span>
           </span>
         </button>
       `;
@@ -614,7 +603,7 @@ function openMovePicker(index) {
 }
 
 function initMovePickerDone() {
-  document.getElementById('move-picker-done').addEventListener('click', () => {
+  document.getElementById('move-picker-done')?.addEventListener('click', () => {
     closeModal('move-picker-modal');
     renderTeamSlots();
     renderValidation();
@@ -622,7 +611,7 @@ function initMovePickerDone() {
 }
 
 /* ============================================================
-   VALIDATION
+   VALIDATION (Dynamic Feedback based on active draft)
    ============================================================ */
 function validateTeam(draft) {
   const errors = [];
@@ -630,9 +619,9 @@ function validateTeam(draft) {
   const missingCount = TEAM_SIZE - filledSlots.length;
 
   if (missingCount === TEAM_SIZE) {
-    errors.push('Team must contain 6 Pokémon.');
+    errors.push('Choose 6 Pokémon for your roster.');
   } else if (missingCount > 0) {
-    errors.push(`Choose ${missingCount} more Pokémon.`);
+    errors.push(`Choose ${missingCount} more Pokémon to complete the 6-Pokémon requirement.`);
   }
 
   const idCounts = {};
@@ -641,26 +630,26 @@ function validateTeam(draft) {
   });
   const hasDuplicatePokemon = Object.values(idCounts).some((count) => count > 1);
   if (hasDuplicatePokemon) {
-    errors.push('Duplicate Pokémon detected.');
+    errors.push('Each Pokémon on your team must be unique (no duplicate species).');
   }
 
   const restrictedCount = filledSlots.filter((slot) =>
     isRestrictedCategory(getPokemonById(slot.pokemonId))
   ).length;
   if (restrictedCount > 1) {
-    errors.push('Only one Legendary, Mythical, or Ultra Beast is allowed per team.');
+    errors.push('Maximum 1 Legendary, Mythical, or Ultra Beast allowed per team.');
   }
 
-  filledSlots.forEach((slot) => {
+  filledSlots.forEach((slot, idx) => {
     const mon = getPokemonById(slot.pokemonId);
-    const displayName = mon ? (mon.display_name || mon.name) : `Slot #${slot.pokemonId}`;
+    const displayName = mon ? (mon.display_name || mon.name) : `Slot #${idx + 1}`;
     const movesMissing = MOVES_PER_POKEMON - slot.moveIds.length;
     if (movesMissing > 0) {
-      errors.push(`${displayName} needs ${movesMissing} more move${movesMissing === 1 ? '' : 's'}.`);
+      errors.push(`${displayName} (Slot #${idx + 1}) needs ${movesMissing} more move${movesMissing === 1 ? '' : 's'}.`);
     }
     const hasDuplicateMoves = slot.moveIds.length !== new Set(slot.moveIds.map(Number)).size;
     if (hasDuplicateMoves) {
-      errors.push(`${displayName} has a duplicate move selected.`);
+      errors.push(`${displayName} has duplicate moves selected.`);
     }
   });
 
@@ -671,32 +660,37 @@ function renderValidation() {
   const { valid, errors } = validateTeam(teamDraft);
   const panel = document.getElementById('validation-panel');
   const saveBtn = document.getElementById('save-team-btn');
+  if (!panel) return;
 
   panel.classList.toggle('is-valid', valid);
   panel.classList.toggle('has-errors', !valid);
-  saveBtn.disabled = !valid;
+  if (saveBtn) saveBtn.disabled = !valid;
 
   if (valid) {
-    panel.innerHTML = '<span class="v-title">Team Ready</span>All requirements met — this team can be saved.';
+    panel.innerHTML = `
+      <span class="v-title">Team Ready</span>
+      <div class="validation-success-text">All requirements met — 6 unique Pokémon with 4 valid moves each. Ready for battle.</div>
+    `;
   } else {
     panel.innerHTML = `
-      <span class="v-title">Fix Before Saving</span>
+      <span class="v-title">Team Requirements</span>
       <ul class="validation-list">${errors.map((e) => `<li>${e}</li>`).join('')}</ul>
     `;
   }
 }
 
 /* ============================================================
-   SAVE
+   SAVE & UPDATE TEAM
    ============================================================ */
 async function saveTeam() {
   const { valid } = validateTeam(teamDraft);
   if (!valid) return;
 
   const feedbackEl = document.getElementById('save-feedback');
-  feedbackEl.textContent = 'Saving team...';
+  const saveBtn = document.getElementById('save-team-btn');
+  if (feedbackEl) feedbackEl.textContent = 'Saving team to arena database…';
+  if (saveBtn) saveBtn.disabled = true;
 
-  // Build payload expected by backend TeamCreate schema
   const payload = {
     slots: teamDraft.map((slot, idx) => ({
       slot: idx + 1,
@@ -710,16 +704,12 @@ async function saveTeam() {
     let resp;
     if (currentSection === 'create-team') {
       resp = await window.Api.createTeam(payload);
-      feedbackEl.textContent = 'Team created successfully!';
-    } else if (currentSection === 'edit-team') {
-      resp = await window.Api.updateTeam(payload);
-      feedbackEl.textContent = 'Team updated successfully!';
+      if (feedbackEl) feedbackEl.textContent = 'Team created successfully! Returning to Dashboard…';
     } else {
-      feedbackEl.textContent = 'Unknown save context.';
-      return;
+      resp = await window.Api.updateTeam(payload);
+      if (feedbackEl) feedbackEl.textContent = 'Team updated successfully! Returning to Dashboard…';
     }
 
-    // Populate teamDraft and cache from authoritative server response
     if (resp && resp.data && Array.isArray(resp.data.slots)) {
       const slots = resp.data.slots;
       const mapped = new Array(TEAM_SIZE).fill(null);
@@ -748,44 +738,34 @@ async function saveTeam() {
     renderTeamSlots();
     renderValidation();
 
-    // Re-render views so Create Team locks into "Team Already Exists"
-    if (currentSection === 'create-team') {
-      currentSection = 'edit-team';
-      const createFeedback = document.getElementById('save-feedback');
-      if (createFeedback) createFeedback.textContent = 'Team created successfully! Returning to Dashboard...';
-    } else if (currentSection === 'edit-team') {
-      const editFeedback = document.getElementById('save-feedback');
-      if (editFeedback) editFeedback.textContent = 'Team updated successfully! Returning to Dashboard...';
-    }
-
-    // Refresh Overview dashboard if function exists or redirect to dashboard after brief delay
-    if (typeof loadTrainerDashboardData === 'function') {
-      loadTrainerDashboardData();
-    } else {
-      setTimeout(() => {
-        window.location.href = 'dashboard.html';
-      }, 750);
-    }
+    setTimeout(() => {
+      window.location.href = 'dashboard.html';
+    }, 650);
   } catch (err) {
+    if (saveBtn) saveBtn.disabled = false;
     if (err && err.name === 'ApiError') {
       if (err.status === 401 || err.status === 403) {
         window.location.href = 'index.html';
         return;
       }
       const msg = err.body?.detail || err.message || 'Error saving team.';
-      feedbackEl.textContent = 'Save failed: ' + msg;
+      if (feedbackEl) feedbackEl.textContent = 'Save failed: ' + msg;
       return;
     }
 
-    feedbackEl.textContent = 'Save failed: ' + (err?.message || 'Connection error');
+    if (feedbackEl) feedbackEl.textContent = 'Save failed: ' + (err?.message || 'Connection error');
   }
 }
 
+/* ============================================================
+   INITIALIZATION
+   ============================================================ */
 async function initTeamBuilder() {
   initPokemonPickerFilters();
   initPokemonActionButtons();
   initConfirmRemoveButton();
   initMovePickerDone();
+
   const saveBtn = document.getElementById('save-team-btn');
   if (saveBtn) {
     saveBtn.addEventListener('click', () => { saveTeam(); });
@@ -800,6 +780,9 @@ async function initTeamBuilder() {
       currentSection = 'edit-team';
       const existsNotice = document.getElementById('team-exists-notice');
       if (existsNotice) existsNotice.hidden = false;
+      const titleEl = document.getElementById('team-builder-title');
+      if (titleEl) titleEl.innerHTML = 'Edit <em>Team</em>';
+
       const slots = resp.data.slots;
       const mapped = new Array(TEAM_SIZE).fill(null);
       slots.forEach((slot) => {
@@ -827,6 +810,8 @@ async function initTeamBuilder() {
       currentSection = 'create-team';
       const emptyNotice = document.getElementById('team-builder-empty-notice');
       if (emptyNotice) emptyNotice.hidden = false;
+      const titleEl = document.getElementById('team-builder-title');
+      if (titleEl) titleEl.innerHTML = 'Create <em>Team</em>';
       enterTeamBuilder(new Array(TEAM_SIZE).fill(null));
     }
   } catch (err) {
@@ -834,6 +819,8 @@ async function initTeamBuilder() {
       currentSection = 'create-team';
       const emptyNotice = document.getElementById('team-builder-empty-notice');
       if (emptyNotice) emptyNotice.hidden = false;
+      const titleEl = document.getElementById('team-builder-title');
+      if (titleEl) titleEl.innerHTML = 'Create <em>Team</em>';
       enterTeamBuilder(new Array(TEAM_SIZE).fill(null));
       return;
     }
