@@ -9,6 +9,17 @@
 let allPokemon = [];
 const pokemonDetailCache = {};
 
+function typePillsHTML(types) {
+  if (!types || !Array.isArray(types)) return '';
+  return types.map((t) => `<span class="type-pill" data-type="${t}">${t}</span>`).join('');
+}
+
+function pokemonPortraitHTML(pokemonEntry, size) {
+  const path = `assets/images/pokemon/${pokemonEntry.id}.png`;
+  const initials = (pokemonEntry.name || '').slice(0, 2).toUpperCase();
+  return `<img src="${path}" alt="${pokemonEntry.name || ''}" width="${size}" height="${size}" onerror="this.replaceWith(Object.assign(document.createElement('span'), {textContent:'${initials}', style:'font-family:var(--font-mono);font-size:0.7rem;color:var(--text-faint);'}))" />`;
+}
+
 function getPokemonTypes(p) {
   const types = [];
   if (p.type1) types.push(p.type1);
@@ -208,6 +219,42 @@ async function loadPokedexData() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+/* ---------- Context-Aware Navigation ---------- */
+function initContextAwareNavigation() {
+  const params = new URLSearchParams(window.location.search);
+  const from = params.get('from');
+  const backLink = document.getElementById('nav-back-link');
+  const brandLink = document.getElementById('brand-link');
+
+  if (from === 'dashboard') {
+    if (backLink) {
+      backLink.textContent = '← Back to Dashboard';
+      backLink.href = 'dashboard.html';
+    }
+    if (brandLink) {
+      brandLink.href = 'dashboard.html';
+    }
+  } else {
+    // Default fallback to Home
+    if (backLink) {
+      backLink.textContent = '← Back to Home';
+      backLink.href = 'index.html';
+    }
+    if (brandLink) {
+      brandLink.href = 'index.html';
+    }
+  }
+}
+
+// Run immediately for instant link accuracy
+initContextAwareNavigation();
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initContextAwareNavigation();
+    loadPokedexData();
+  });
+} else {
+  initContextAwareNavigation();
   loadPokedexData();
-});
+}

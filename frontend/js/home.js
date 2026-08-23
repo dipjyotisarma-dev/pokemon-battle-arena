@@ -14,50 +14,10 @@ function clearFormErrors(formEl) {
   formEl.querySelectorAll('.field').forEach((fieldEl) => showFieldError(fieldEl, ''));
 }
 
-/* ---------- Auth Session Detection ---------- */
+/* ---------- Auth Session Detection (No DOM Mutation on Home) ---------- */
 async function initAuthState() {
-  try {
-    const trainer = typeof getCurrentTrainer === 'function' ? await getCurrentTrainer() : null;
-    if (trainer && trainer.username) {
-      // 1. Header nav: add dashboard link
-      const navAuthSlot = document.getElementById('nav-auth-slot');
-      if (navAuthSlot) {
-        navAuthSlot.innerHTML = `<a href="dashboard.html" class="active" data-testid="home-nav-link-dashboard">Dashboard</a>`;
-      }
-
-      // 2. Hero actions: primary CTA leads to dashboard
-      const heroActions = document.getElementById('hero-actions');
-      if (heroActions) {
-        heroActions.innerHTML = `
-          <a class="button button-gold" href="dashboard.html" data-testid="home-dashboard-button">
-            Enter dashboard <span>→</span>
-          </a>
-          <button class="button button-outline" type="button" data-open-modal="rules-modal" data-testid="home-rules-button-hero">
-            Game rules <span>→</span>
-          </button>
-        `;
-      }
-
-      // 3. Entry strip: item 2 links to dashboard
-      const entryRegisterBtn = document.getElementById('entry-register-btn');
-      if (entryRegisterBtn) {
-        const dashLink = document.createElement('a');
-        dashLink.className = 'entry-strip-item';
-        dashLink.href = 'dashboard.html';
-        dashLink.id = 'entry-register-btn';
-        dashLink.setAttribute('data-testid', 'home-register-action');
-        dashLink.innerHTML = `
-          <span>02</span>
-          <b>Dashboard</b>
-          <small>Enter trainer HQ →</small>
-        `;
-        entryRegisterBtn.replaceWith(dashLink);
-      }
-    }
-  } catch (err) {
-    // If backend is unreachable or not logged in, maintain default guest CTAs
-    console.debug('No active trainer session:', err);
-  }
+  // Home page CTAs and navigation remain static and identical for all users.
+  // Auth state is checked during login/register form actions and protected page navigation.
 }
 
 /* ---------- Register Trainer ---------- */

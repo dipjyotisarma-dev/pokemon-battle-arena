@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en" data-page="team">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Team Builder — Pokémon Battle Arena</title>
+  <meta name="description" content="Build and manage your 6-Pokémon team and moves for the Pokémon Battle Arena." />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/team.css" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+<body class="dashboard-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+
+  <!-- ============ SITE HEADER ============ -->
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="index.html" data-testid="brand-home">
+        <b>PBA</b>
+        <span>Pokémon Battle Arena</span>
+      </a>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
+        <a href="pokedex.html?from=dashboard" data-testid="nav-pokedex">Pokédex</a>
+        <a href="leaderboard.html?from=dashboard" data-testid="nav-leaderboard">Leaderboard</a>
+        <button class="icon-button theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" data-testid="team-theme-toggle">◐</button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ============ MAIN CONTENT (.page-shell) ============ -->
+  <main id="main" class="page-shell">
+    <!-- PAGE HEADING -->
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">ROSTER MANAGEMENT</p>
+        <h1 id="team-builder-title">Team <em>Builder</em></h1>
+      </div>
+      <a class="text-link" href="dashboard.html" data-testid="team-back-dashboard">← Back to Dashboard</a>
+    </div>
+
+    <!-- NOTICES -->
+    <div class="card" id="team-exists-notice" hidden style="margin-bottom: var(--space-5);">
+      <p class="eyebrow" style="color: var(--gold);">TEAM ACTIVE</p>
+      <h3>Your six Pokémon are currently registered.</h3>
+      <p class="muted">You can adjust Pokémon slots or learnable moves below.</p>
+    </div>
+
+    <div class="card" id="team-builder-empty-notice" hidden style="margin-bottom: var(--space-5);">
+      <p class="eyebrow">EMPTY ROSTER</p>
+      <p class="muted">Select six unique Pokémon and four moves for each to enter the battle arena.</p>
+    </div>
+
+    <!-- TEAM BUILDER SECTION -->
+    <section id="team-builder" aria-label="Team Slots">
+      <!-- 3x2 SLOT GRID -->
+      <div class="team-slot-grid" id="team-slot-grid" data-testid="team-slot-grid">
+        <!-- Rendered by js/team.js -->
+      </div>
+
+      <!-- VALIDATION PANEL -->
+      <div class="validation-panel" id="validation-panel" data-testid="validation-panel">
+        <span class="v-title">Team Requirements</span>
+        <ul class="validation-list">
+          <li>Choose 6 Pokémon.</li>
+          <li>Assign 4 moves to each Pokémon.</li>
+          <li>Maximum 1 Legendary, Mythical, or Ultra Beast.</li>
+        </ul>
+      </div>
+
+      <!-- ACTIONS -->
+      <div class="team-builder-actions">
+        <button class="button button-gold" type="button" id="save-team-btn" disabled data-testid="save-team-btn">
+          Save team →
+        </button>
+        <span class="save-feedback" id="save-feedback" aria-live="polite"></span>
+      </div>
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand-col">
+        <a class="brand" href="index.html">
+          <b>PBA</b>
+          <span>Pokémon Battle Arena</span>
+        </a>
+        <p class="footer-tagline">Competitive 6-v-6 tactical battles. Build your team, read the matchup, and take the turn.</p>
+      </div>
+
+      <div class="footer-nav-col">
+        <span class="footer-col-title">Arena Navigation</span>
+        <div class="footer-links">
+          <a href="index.html">Home</a>
+          <a href="dashboard.html">Dashboard</a>
+          <a href="pokedex.html?from=dashboard">Pokédex</a>
+          <a href="leaderboard.html?from=dashboard">Leaderboard</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 Pokémon Battle Arena. An independent tactical combat simulator.</span>
+      <span>All Pokémon media and trademarks belong to their respective copyright holders.</span>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       MODALS FOR TEAM BUILDER
+       ============================================================ -->
+
+  <!-- MODAL: POKÉMON PICKER -->
+  <div class="modal-overlay" id="pokemon-picker-modal">
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="picker-title">
+      <div class="modal-header">
+        <h2 id="picker-title">Select Pokémon</h2>
+        <button class="modal-close" type="button" data-close-modal aria-label="Close picker">✕</button>
+      </div>
+      <div class="picker-filters">
+        <input type="text" id="picker-search" placeholder="Search by name or ID…" />
+        <select id="picker-type-filter"></select>
+      </div>
+      <div class="picker-grid" id="picker-grid"></div>
+    </div>
+  </div>
+
+  <!-- MODAL: MOVE PICKER -->
+  <div class="modal-overlay" id="move-picker-modal">
+    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="move-picker-title">
+      <div class="modal-header">
+        <h2 id="move-picker-title">Choose 4 Moves</h2>
+        <button class="modal-close" type="button" data-close-modal aria-label="Close move picker">✕</button>
+      </div>
+      <div class="move-picker-target">
+        <div class="mon-portrait" id="move-picker-mon-portrait"></div>
+        <div>
+          <div class="mon-name" id="move-picker-mon-name"></div>
+          <span class="muted" style="font-size:0.8rem;">Select 4 valid learnable moves</span>
+        </div>
+      </div>
+      <div class="move-slots" id="move-slots"></div>
+      <div class="move-pool" id="move-pool"></div>
+      <div style="margin-top: var(--space-4); text-align: right;">
+        <button class="button button-gold" type="button" id="move-picker-done">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: POKÉMON ACTION -->
+  <div class="modal-overlay" id="pokemon-action-modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pokemon-action-title">
+      <div class="modal-header">
+        <h2 id="pokemon-action-title">Manage Slot</h2>
+        <button class="modal-close" type="button" data-close-modal aria-label="Close slot management">✕</button>
+      </div>
+      <div class="action-modal-preview">
+        <div class="mon-portrait" id="action-modal-portrait"></div>
+        <div>
+          <div class="mon-name" id="action-modal-mon-name"></div>
+          <div id="action-modal-types"></div>
+        </div>
+      </div>
+      <div class="action-modal-buttons">
+        <button class="button button-outline btn-block" type="button" id="action-edit-moves">Edit moves</button>
+        <button class="button button-outline btn-block" type="button" id="action-replace-pokemon">Replace Pokémon</button>
+        <button class="button button-outline btn-block btn-danger" type="button" id="action-remove-pokemon">Remove from team</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CONFIRM REMOVE -->
+  <div class="modal-overlay" id="confirm-remove-modal">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-remove-title">
+      <div class="modal-header">
+        <h2 id="confirm-remove-title">Remove Pokémon?</h2>
+        <button class="modal-close" type="button" data-close-modal aria-label="Close">✕</button>
+      </div>
+      <p class="muted">Are you sure you want to remove this Pokémon from your roster?</p>
+      <div style="display:flex; gap:var(--space-3); margin-top:var(--space-4); justify-content:flex-end;">
+        <button class="button button-outline" type="button" data-close-modal>Cancel</button>
+        <button class="button button-gold" type="button" id="confirm-remove-btn">Remove</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/theme.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/session.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/team.js"></script>
+</body>
+</html>

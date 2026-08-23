@@ -1,246 +1,135 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-page="dashboard">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Trainer Dashboard — Pokémon Battle Arena</title>
+  <meta name="description" content="Trainer Command Center for the Pokémon Battle Arena. Manage your 6-Pokémon roster, monitor standing, and enter combat." />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/dashboard.css" />
-  <link rel="stylesheet" href="css/team.css" />
 </head>
-<body>
+<body class="dashboard-page">
   <a class="skip-link" href="#main">Skip to content</a>
 
-  <div class="sidebar-scrim"></div>
-
-  <div class="app-shell">
-    <!-- ============ SIDEBAR ============ -->
-    <aside class="sidebar" aria-label="Dashboard navigation">
-      <a href="index.html" class="sidebar-brand">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <span>Battle Arena</span>
+  <!-- ============ SITE HEADER ============ -->
+  <header class="site-header">
+    <div class="site-header-inner">
+      <a class="brand" href="index.html" data-testid="brand-home">
+        <b>PBA</b>
+        <span>Pokémon Battle Arena</span>
       </a>
-
-      <nav class="sidebar-nav">
-        <button class="sidebar-link is-active" type="button" data-section="overview">
-          <span class="glyph" aria-hidden="true">◆</span>
-          <span class="label">Dashboard</span>
-        </button>
-        <button class="sidebar-link" type="button" data-section="create-team">
-          <span class="glyph" aria-hidden="true">+</span>
-          <span class="label">Create Team</span>
-        </button>
-        <button class="sidebar-link" type="button" data-section="edit-team">
-          <span class="glyph" aria-hidden="true">✎</span>
-          <span class="label">Edit Team</span>
-        </button>
-        <a class="sidebar-link" href="pokedex.html">
-          <span class="glyph" aria-hidden="true">▤</span>
-          <span class="label">Pokédex</span>
-        </a>
-        <button class="sidebar-link link-danger" type="button" id="logout-link">
-          <span class="glyph" aria-hidden="true">⏻</span>
-          <span class="label">Logout</span>
-        </button>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="dashboard.html" class="active" data-testid="nav-dashboard">Dashboard</a>
+        <a href="pokedex.html?from=dashboard" data-testid="nav-pokedex">Pokédex</a>
+        <a href="leaderboard.html?from=dashboard" data-testid="nav-leaderboard">Leaderboard</a>
+        <button class="icon-button theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" data-testid="dashboard-theme-toggle">◐</button>
       </nav>
+    </div>
+  </header>
 
-      <div class="sidebar-foot">Battle Arena Prototype</div>
-    </aside>
+  <!-- ============ MAIN CONTENT (.page-shell) ============ -->
+  <main id="main" class="page-shell">
+    <!-- PAGE HEADING -->
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">TRAINER PROFILE</p>
+        <h1>Trainer <em id="trainer-name" data-testid="dashboard-trainer-name">Candidate</em></h1>
+      </div>
+      <button class="text-link logout-btn" id="logout-btn" type="button" data-testid="dashboard-logout">Logout ↗</button>
+    </div>
 
-    <!-- ============ MAIN ============ -->
-    <div class="app-main">
-      <header class="app-topbar">
-        <button class="mobile-nav-toggle" type="button" aria-label="Open navigation">☰</button>
-        <h1 class="topbar-title">Trainer Dashboard</h1>
-        <div class="header-actions">
-          <button class="theme-toggle" type="button" aria-pressed="false">
-            <span class="dot" aria-hidden="true"></span>
-            <span class="theme-label">Dark</span>
-          </button>
-          <div class="trainer-chip">
-            <span class="name" id="trainer-chip-name"></span>
+    <!-- 2-PANEL DASHBOARD GRID -->
+    <section class="dashboard-grid" aria-label="Performance Overview">
+      <!-- PANEL 1: CURRENT RECORD -->
+      <article class="panel identity-panel" data-testid="dashboard-identity-panel">
+        <p class="eyebrow">CURRENT RECORD</p>
+        <div class="rank-line">
+          <strong id="stat-rank" data-testid="dashboard-rank">#—</strong>
+          <span id="rank-status-label">OFFICIAL STANDING</span>
+        </div>
+        <div class="metric-grid">
+          <div>
+            <b id="stat-matches" data-testid="dashboard-matches">—</b>
+            <span>Matches</span>
+          </div>
+          <div>
+            <b id="stat-wins" data-testid="dashboard-wins">—</b>
+            <span>Wins</span>
+          </div>
+          <div>
+            <b id="stat-points" data-testid="dashboard-points">—</b>
+            <span>Points</span>
           </div>
         </div>
-      </header>
+        <p class="muted">Live competitive standing in the arena league.</p>
+      </article>
 
-      <main id="main" class="app-content" tabindex="-1">
-        <!-- ============ OVERVIEW VIEW ============ -->
-        <section class="dash-view" id="view-overview">
-          <div class="view-header">
-            <span class="eyebrow">Trainer Status</span>
-            <h2>Overview</h2>
-          </div>
+      <!-- PANEL 2: LAST BATTLE -->
+      <article class="panel last-panel" data-testid="dashboard-last-panel">
+        <p class="eyebrow">LAST BATTLE</p>
+        <div id="last-battle-container" data-testid="dashboard-last-battle">
+          <!-- Populated dynamically by dashboard.js -->
+        </div>
+      </article>
+    </section>
 
-          <div class="stat-rail">
-            <div class="stat-cell accent">
-              <span class="stat-label">Rank</span>
-              <span class="stat-value" id="stat-rank">—</span>
-            </div>
-            <div class="stat-cell">
-              <span class="stat-label">Matches</span>
-              <span class="stat-value" id="stat-matches">—</span>
-            </div>
-            <div class="stat-cell">
-              <span class="stat-label">Wins</span>
-              <span class="stat-value" id="stat-wins">—</span>
-            </div>
-            <div class="stat-cell">
-              <span class="stat-label">Points</span>
-              <span class="stat-value" id="stat-points">—</span>
-            </div>
-          </div>
-
-          <div class="last-battle" id="last-battle"></div>
-
-          <!-- NO TEAM -->
-          <div class="empty-state" id="no-team-state" hidden>
-            <h3>No Team Registered</h3>
-            <p>You need a complete team before entering the arena.</p>
-            <button class="btn btn-primary" type="button" data-section="create-team">Create Team</button>
-          </div>
-
-          <!-- TEAM EXISTS -->
-          <div id="has-team-state" hidden>
-            <h3 style="margin-bottom: var(--space-4);">Current Roster</h3>
-            <div class="roster-preview" id="roster-preview"></div>
-            <div class="roster-actions">
-              <button class="btn btn-secondary" type="button" data-section="edit-team">Edit Team</button>
-              <a class="btn btn-primary" href="battle.html">Start Battle</a>
-            </div>
-          </div>
-        </section>
-
-        <!-- ============ TEAM BUILDER VIEW (Create Team / Edit Team) ============ -->
-        <section class="dash-view" id="view-team" hidden>
-          <div class="view-header">
-            <span class="eyebrow">Roster Management</span>
-            <h2 id="team-builder-title">Create Team</h2>
-          </div>
-
-          <!-- Create Team, but a team is already saved: locked, informational -->
-          <div class="empty-state" id="team-exists-notice" hidden>
-            <h3>Team Already Exists</h3>
-            <p>You already have a registered team. Use Edit Team to modify your Pokémon or moves.</p>
-            <button class="btn btn-primary" type="button" data-section="edit-team">Edit Team</button>
-          </div>
-
-          <!-- Edit Team, but no team has been saved yet -->
-          <div class="empty-state" id="team-builder-empty-notice" hidden>
-            <h3>Nothing to Edit Yet</h3>
-            <p>You haven't created a team. Start from scratch with Create Team.</p>
-            <button class="btn btn-primary" type="button" data-section="create-team">Create Team</button>
-          </div>
-
-          <div id="team-builder">
-            <p style="margin-bottom: var(--space-5); max-width: 60ch;">
-              Fill all six slots with a unique Pokémon and exactly four moves each.
-              Only one Legendary, Mythical, or Ultra Beast is allowed per team.
-            </p>
-
-            <div class="team-slot-grid" id="team-slot-grid"></div>
-
-            <div class="validation-panel" id="validation-panel"></div>
-
-            <div class="team-builder-actions">
-              <button class="btn btn-primary" type="button" id="save-team-btn" disabled>Save Team</button>
-              <span class="save-feedback" id="save-feedback"></span>
-            </div>
-          </div>
-        </section>
-      </main>
-    </div>
-  </div>
-
-  <!-- ============================================================
-       MODAL: POKÉMON PICKER
-       ============================================================ -->
-  <div class="modal-overlay" id="pokemon-picker-modal">
-    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="picker-title">
-      <div class="modal-header">
-        <h2 id="picker-title">Select a Pokémon</h2>
-        <button class="modal-close" type="button" data-close-modal aria-label="Close picker">✕</button>
+    <!-- ROSTER SECTION -->
+    <section class="roster-section" aria-label="Roster Status">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">ROSTER STATUS</p>
+          <h2>Your six</h2>
+        </div>
+        <div id="roster-head-action">
+          <!-- Edit team -> or Create team -> button -->
+        </div>
       </div>
 
-      <div class="picker-filters">
-        <label class="visually-hidden" for="picker-search">Search by name or ID</label>
-        <input type="text" id="picker-search" placeholder="Search by name or ID…" />
-        <label class="visually-hidden" for="picker-type-filter">Filter by type</label>
-        <select id="picker-type-filter"></select>
+      <!-- 3x2 TEAM GRID -->
+      <div class="team-grid" id="team-grid" data-testid="dashboard-team-grid">
+        <!-- 6 .pokemon-slot cards or empty slots rendered here -->
+      </div>
+    </section>
+
+    <!-- BATTLE GATE (ACTION BAND) -->
+    <section class="action-band" id="action-band" data-testid="dashboard-battle-gate">
+      <!-- Populated dynamically based on team existence -->
+    </section>
+  </main>
+
+  <!-- ============ FOOTER ============ -->
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand-col">
+        <a class="brand" href="index.html">
+          <b>PBA</b>
+          <span>Pokémon Battle Arena</span>
+        </a>
+        <p class="footer-tagline">Competitive 6-v-6 tactical battles. Build your team, read the matchup, and take the turn.</p>
       </div>
 
-      <div class="picker-grid" id="picker-grid"></div>
-    </div>
-  </div>
-
-  <!-- ============================================================
-       MODAL: MOVE PICKER
-       ============================================================ -->
-  <div class="modal-overlay" id="move-picker-modal">
-    <div class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="move-picker-title">
-      <div class="modal-header">
-        <h2 id="move-picker-title">Choose 4 Moves</h2>
-        <button class="modal-close" type="button" data-close-modal aria-label="Close move picker">✕</button>
-      </div>
-
-      <div class="move-picker-target">
-        <div class="mon-portrait" id="move-picker-mon-portrait"></div>
-        <div class="mon-name" id="move-picker-mon-name" style="font-family: var(--font-display); font-weight:700; text-transform:uppercase;"></div>
-      </div>
-
-      <div class="move-slots" id="move-slots"></div>
-
-      <div class="move-pool" id="move-pool"></div>
-
-      <div style="margin-top: var(--space-5); display:flex; justify-content:flex-end;">
-        <button class="btn btn-primary" type="button" id="move-picker-done">Done</button>
+      <div class="footer-nav-col">
+        <span class="footer-col-title">Arena Navigation</span>
+        <div class="footer-links">
+          <a href="index.html">Home</a>
+          <a href="dashboard.html" class="active">Dashboard</a>
+          <a href="pokedex.html?from=dashboard">Pokédex</a>
+          <a href="leaderboard.html?from=dashboard">Leaderboard</a>
+        </div>
       </div>
     </div>
-  </div>
 
-  <!-- ============================================================
-       MODAL: POKÉMON ACTIONS (a filled slot in Edit/Create Team)
-       ============================================================ -->
-  <div class="modal-overlay" id="pokemon-action-modal">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="pokemon-action-title">
-      <div class="modal-header">
-        <h2 id="pokemon-action-title">Pokémon</h2>
-        <button class="modal-close" type="button" data-close-modal aria-label="Close">✕</button>
-      </div>
-
-      <div class="slot-actions-list">
-        <button class="btn btn-secondary btn-block" type="button" id="action-edit-moves">Edit Moves</button>
-        <button class="btn btn-secondary btn-block" type="button" id="action-replace-pokemon">Replace Pokémon</button>
-        <button class="btn btn-danger btn-block" type="button" id="action-remove-pokemon">Remove From Team</button>
-      </div>
+    <div class="footer-bottom">
+      <span>© 2026 Pokémon Battle Arena. An independent tactical combat simulator.</span>
+      <span>All Pokémon media and trademarks belong to their respective copyright holders.</span>
     </div>
-  </div>
+  </footer>
 
-  <!-- ============================================================
-       MODAL: CONFIRM REMOVE
-       ============================================================ -->
-  <div class="modal-overlay" id="confirm-remove-modal">
-    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="confirm-remove-title">
-      <div class="modal-header">
-        <h2 id="confirm-remove-title">Remove Pokémon?</h2>
-        <button class="modal-close" type="button" data-close-modal aria-label="Close">✕</button>
-      </div>
-
-      <p id="confirm-remove-text" style="margin-bottom: var(--space-5);"></p>
-
-      <div style="display:flex; gap: var(--space-3);">
-        <button class="btn btn-secondary btn-block" type="button" data-close-modal>Cancel</button>
-        <button class="btn btn-danger btn-block" type="button" id="confirm-remove-btn">Remove</button>
-      </div>
-    </div>
-  </div>
-
-  <script src="js/data.js"></script>
+  <!-- Scripts -->
   <script src="js/theme.js"></script>
-  <script src="js/modal.js"></script>
   <script src="js/session.js"></script>
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>
   <script src="js/dashboard.js"></script>
-  <script src="js/team.js"></script>
 </body>
 </html>

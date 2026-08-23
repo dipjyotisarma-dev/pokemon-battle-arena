@@ -1,274 +1,239 @@
 /* ============================================================
-   DASHBOARD SHELL
-   Handles the section-switching inside dashboard.html (Overview vs
-   Create Team vs Edit Team). This is NOT a client-side router — it
-   just toggles which <section> is visible on this one page, per the
-   project's "Create/Edit Team are views inside dashboard.html"
-   requirement.
-
-   IMPORTANT: Create Team and Edit Team both render into the same
-   underlying <section id="view-team"> element, so the active-state
-   logic cannot key off which <section> is visible — two different
-   nav buttons point at the same section. Instead every trigger
-   carries a unique data-section value ("overview" / "create-team" /
-   "edit-team"), and that exact value is what both drives which
-   content renders AND which single sidebar link gets highlighted.
+   POKÉMON BATTLE ARENA — TRAINER DASHBOARD (EMERGENT SYSTEM)
+   Handles live data loading from FastAPI backend:
+   - GET /trainer/dashboard (Trainer stats, rank, last battle)
+   - GET /team (6-slot roster)
+   - POST /auth/logout (Session logout)
    ============================================================ */
 
-const SECTION_TO_VIEW_ID = {
-  overview: 'view-overview',
-  'create-team': 'view-team',
-  'edit-team': 'view-team',
-};
-
-let currentSection = 'overview';
-
-function setActiveSection(sectionName) {
-  const previousSection = currentSection;
-  currentSection = sectionName;
-  const viewId = SECTION_TO_VIEW_ID[sectionName];
-
-  document.querySelectorAll('.dash-view').forEach((view) => {
-    view.hidden = view.id !== viewId;
-  });
-
-  // Exactly one sidebar link matches this exact section value, so
-  // exactly one gets the active class — Create Team and Edit Team
-  // can never both be active at once.
-  document.querySelectorAll('.sidebar-link[data-section]').forEach((link) => {
-    link.classList.toggle('is-active', link.getAttribute('data-section') === sectionName);
-  });
-
-  // When switching to the Overview section, load live dashboard data
-  // but avoid duplicate loads if we are already on the overview.
-  if (sectionName === 'overview' && previousSection !== 'overview') {
-    // loadTrainerDashboardData gracefully handles auth/errors
-    if (typeof loadTrainerDashboardData === 'function') loadTrainerDashboardData();
-  }
-
-  if (sectionName === 'create-team') renderCreateTeam();
-  if (sectionName === 'edit-team') renderEditTeam();
-
-  closeMobileSidebar();
-
-  const main = document.getElementById('main');
-  if (main) main.focus();
+function formatTypeName(t) {
+  if (!t) return '';
+  const s = String(t).trim();
+  return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
 }
 
-function initSidebarNav() {
-  // Covers sidebar links AND any in-page trigger with the same
-  // data-section attribute (e.g. the "Edit Team" button inside the
-  // "Team Already Exists" notice, or "Create Team" inside the
-  // "Nothing to Edit Yet" notice).
-  document.querySelectorAll('[data-section]').forEach((trigger) => {
-    trigger.addEventListener('click', () => {
-      setActiveSection(trigger.getAttribute('data-section'));
-    });
-  });
+function typeChipsHTML(types) {
+  if (!types || types.length === 0) return '';
+  return types
+    .filter(Boolean)
+    .map((t) => `<span class="type-chip">${formatTypeName(t)}</span>`)
+    .join('');
 }
 
-/* ---------- Mobile sidebar ---------- */
-function openMobileSidebar() {
-  document.querySelector('.sidebar')?.classList.add('is-open');
-  document.querySelector('.sidebar-scrim')?.classList.add('is-open');
-}
-
-function closeMobileSidebar() {
-  document.querySelector('.sidebar')?.classList.remove('is-open');
-  document.querySelector('.sidebar-scrim')?.classList.remove('is-open');
-}
-
-function initMobileSidebarToggle() {
-  const toggle = document.querySelector('.mobile-nav-toggle');
-  const scrim = document.querySelector('.sidebar-scrim');
-  if (toggle) toggle.addEventListener('click', openMobileSidebar);
-  if (scrim) scrim.addEventListener('click', closeMobileSidebar);
-}
-
-/* ---------- Logout ---------- */
-function initLogout() {
-  const logoutLink = document.getElementById('logout-link');
-  if (!logoutLink) return;
-
-  logoutLink.addEventListener('click', () => {
-    logoutTrainer();
-    window.location.href = 'index.html';
-  });
-}
-
-/* ============================================================
-   OVERVIEW RENDERING
-   ============================================================ */
-
-// Ensure Api and Session are available when needed
-function _loadScript(src) {
-  return new Promise((resolve, reject) => {
-    const filename = src.split('/').pop();
-    const existing = document.querySelector(`script[src$="${filename}"]`);
-    if (existing) {
-      if (existing.readyState === 'complete' || existing.readyState === 'loaded') return resolve();
-      existing.addEventListener('load', () => resolve());
-      existing.addEventListener('error', (e) => reject(e));
-      return;
-    }
-    const s = document.createElement('script');
-    s.src = src;
-    s.async = false;
-    s.onload = () => resolve();
-    s.onerror = (e) => reject(e);
-    document.head.appendChild(s);
-  });
-}
-
-async function ensureApiLoaded() {
-  if (!window.Session) await _loadScript('js/session.js');
-  if (!window.Api) await _loadScript('js/api.js');
-}
-
-function renderTrainerChip(trainer) {
-  const chip = document.getElementById('trainer-chip-name');
-  const name = typeof trainer === 'string' ? trainer : (trainer && trainer.username) ? trainer.username : '';
-  if (chip) chip.innerHTML = `<strong>${name}</strong>`;
-}
-
-function renderStatRail(stats) {
-  // stats may come from backend (total_matches) or demo (matches)
+function renderTrainerStats(stats) {
+  const nameEl = document.getElementById('trainer-name');
   const rankEl = document.getElementById('stat-rank');
   const matchesEl = document.getElementById('stat-matches');
   const winsEl = document.getElementById('stat-wins');
   const pointsEl = document.getElementById('stat-points');
 
-  if (rankEl) rankEl.textContent = `#${stats.rank ?? ''}`;
-  if (matchesEl) matchesEl.textContent = String(stats.total_matches ?? stats.matches ?? 0);
+  if (nameEl) nameEl.textContent = stats.username || 'Candidate';
+  if (rankEl) rankEl.textContent = stats.rank ? `#${stats.rank}` : '#—';
+  if (matchesEl) matchesEl.textContent = String(stats.total_matches ?? 0);
   if (winsEl) winsEl.textContent = String(stats.wins ?? 0);
   if (pointsEl) pointsEl.textContent = (stats.points ?? 0).toLocaleString();
 }
 
 function renderLastBattle(lastBattle) {
-  const container = document.getElementById('last-battle');
+  const container = document.getElementById('last-battle-container');
   if (!container) return;
 
   if (!lastBattle) {
     container.innerHTML = `
-      <div>
-        <span class="label">Last Battle</span>
-        <span class="data-readout" style="color: var(--text-faint);">No completed matches yet</span>
+      <div class="empty-state" data-testid="dashboard-last-battle-empty">
+        <strong>NO COMPLETED BATTLE</strong>
+        <span>Your first result will appear here after a full 6-match arena run.</span>
       </div>
     `;
     return;
   }
 
-  // lastBattle schema: { status, matches, wins, points }
+  // lastBattle schema from backend: { status: str, matches: int, wins: int, points: float }
+  const isCompleted = lastBattle.status === 'completed';
+  const statusClass = isCompleted ? 'completed' : 'abandoned';
+  const statusLabel = isCompleted ? 'Run Completed' : 'Run Abandoned';
+
   container.innerHTML = `
-    <div>
-      <span class="label">Last Battle</span>
-      <span class="data-readout">${String(lastBattle.status)}</span>
-      <span class="data-readout" style="color: var(--text-muted);"> · Matches: ${lastBattle.matches}</span>
-    </div>
-    <div>
-      <span class="label">Wins</span>
-      <span class="data-readout">${lastBattle.wins}</span>
-    </div>
-    <div>
-      <span class="label">Points</span>
-      <span class="data-readout" style="color: var(--accent-primary);">${(lastBattle.points ?? 0)}</span>
+    <div class="last-battle-card">
+      <div class="last-battle-header">
+        <span class="status-badge ${statusClass}">${statusLabel}</span>
+        <span class="muted" style="font-family: var(--font-mono); font-size: 11px;">6-Match Sequential Arena</span>
+      </div>
+      <div class="last-metrics">
+        <div>
+          <b>${lastBattle.matches ?? 0}</b>
+          <span>Matches</span>
+        </div>
+        <div>
+          <b>${lastBattle.wins ?? 0}</b>
+          <span>Wins</span>
+        </div>
+        <div>
+          <b style="color: var(--accent-primary);">${(lastBattle.points ?? 0).toLocaleString()}</b>
+          <span>Points</span>
+        </div>
+      </div>
+      <p class="muted">Summary from your most recent arena run.</p>
     </div>
   `;
 }
 
-function renderTeamFromApi(team) {
-  const noTeamEl = document.getElementById('no-team-state');
-  const hasTeamEl = document.getElementById('has-team-state');
-  const roster = document.getElementById('roster-preview');
+function renderTeamGrid(team) {
+  const grid = document.getElementById('team-grid');
+  const headAction = document.getElementById('roster-head-action');
+  const actionBand = document.getElementById('action-band');
+  if (!grid) return;
 
-  if (!team || !Array.isArray(team.slots) || team.slots.length !== 6 || !team.slots.every((s) => s && s.pokemon)) {
-    if (noTeamEl) noTeamEl.hidden = false;
-    if (hasTeamEl) hasTeamEl.hidden = true;
-    if (roster) roster.innerHTML = '';
-    return;
-  }
+  const hasCompleteTeam =
+    team &&
+    Array.isArray(team.slots) &&
+    team.slots.length === 6 &&
+    team.slots.every((s) => s && s.pokemon);
 
-  if (noTeamEl) noTeamEl.hidden = true;
-  if (hasTeamEl) hasTeamEl.hidden = false;
+  if (hasCompleteTeam) {
+    // 1. Render 6 .pokemon-slot cards
+    grid.innerHTML = team.slots
+      .map((slot) => {
+        const p = slot.pokemon;
+        const displayName = p.display_name || p.name || `Slot ${slot.slot}`;
+        const types = [p.type1].concat(p.type2 ? [p.type2] : []).filter(Boolean);
+        const moves = (slot.moves || []).map((m) => m.display_name || m.move_name || m);
+        const moveList = moves.length > 0 ? moves.join(' · ') : 'No moves set';
+        const imgPath = `assets/images/pokemon/${p.id}.png`;
 
-  roster.innerHTML = team.slots
-    .map((slot) => {
-      const p = slot.pokemon;
-      const moveList = (slot.moves || []).map((m) => m.display_name || m.move_name || m).join(' · ');
-      const types = [p.type1].concat(p.type2 ? [p.type2] : []);
-      const displayName = p.display_name || p.name;
-      const portraitHTML = pokemonPortraitHTML({ id: p.id, name: displayName }, 40);
-      return `
-        <div class="roster-card">
-          <div class="mon-portrait">${portraitHTML}</div>
-          <div>
-            <div class="mon-name">${displayName}</div>
-            <div>${typePillsHTML(types)}</div>
-            <div class="mon-moves">${moveList}</div>
-          </div>
+        return `
+          <article class="pokemon-slot" data-slot="${slot.slot}" data-testid="dashboard-pokemon-slot-${slot.slot}">
+            <span class="slot-num">0${slot.slot}</span>
+            <img src="${imgPath}" alt="${displayName}" onerror="this.style.opacity='0.2'" />
+            <strong>${displayName}</strong>
+            <div>${typeChipsHTML(types)}</div>
+            <div class="slot-moves">${moveList}</div>
+          </article>
+        `;
+      })
+      .join('');
+
+    // 2. Roster header CTA -> Edit team
+    if (headAction) {
+      headAction.innerHTML = `
+        <a class="button button-outline" href="team.html" data-testid="dashboard-edit-team-button">
+          Edit team <span>→</span>
+        </a>
+      `;
+    }
+
+    // 3. Battle Gate -> Ready for Battle
+    if (actionBand) {
+      actionBand.innerHTML = `
+        <div class="action-band-copy">
+          <p class="eyebrow">BATTLE GATE</p>
+          <strong id="team-status" data-testid="dashboard-team-status">READY FOR BATTLE</strong>
+          <span id="team-status-note">Your six are registered. Enter the arena when you're ready.</span>
+        </div>
+        <a class="button button-cyan" id="start-battle" href="battle.html" data-testid="dashboard-start-battle">
+          Start battle <span>→</span>
+        </a>
+      `;
+    }
+  } else {
+    // No team yet -> 6 .empty-slot placeholders
+    let emptySlotsHTML = '';
+    for (let i = 1; i <= 6; i++) {
+      emptySlotsHTML += `
+        <div class="empty-slot" data-slot="${i}" data-testid="dashboard-empty-slot-${i}">
+          <b>0${i}</b>
+          <span>Empty Slot</span>
         </div>
       `;
-    })
-    .join('');
+    }
+    grid.innerHTML = emptySlotsHTML;
+
+    // Roster header CTA -> Create team
+    if (headAction) {
+      headAction.innerHTML = `
+        <a class="button button-gold" href="team.html" data-testid="dashboard-create-team-button">
+          Create team <span>→</span>
+        </a>
+      `;
+    }
+
+    // Battle Gate -> Team Required (points to team.html)
+    if (actionBand) {
+      actionBand.innerHTML = `
+        <div class="action-band-copy">
+          <p class="eyebrow">BATTLE GATE</p>
+          <strong id="team-status" data-testid="dashboard-team-status">TEAM REQUIRED</strong>
+          <span id="team-status-note">Build a six-Pokémon roster and assign four valid moves before entering the arena.</span>
+        </div>
+        <a class="button button-gold" id="start-battle" href="team.html" data-testid="dashboard-start-battle">
+          Create team <span>→</span>
+        </a>
+      `;
+    }
+  }
 }
 
 async function loadTrainerDashboardData() {
-  const lastBattleEl = document.getElementById('last-battle');
-  if (lastBattleEl) lastBattleEl.textContent = 'Loading trainer data...';
-
-  // Hide team areas while loading
-  const noTeamEl = document.getElementById('no-team-state');
-  const hasTeamEl = document.getElementById('has-team-state');
-  if (noTeamEl) noTeamEl.hidden = true;
-  if (hasTeamEl) hasTeamEl.hidden = true;
-
   try {
-    await ensureApiLoaded();
-    const resp = await window.Api.getDashboard();
-    const stats = resp && resp.data ? resp.data : null;
-    if (!stats) {
-      if (lastBattleEl) lastBattleEl.textContent = 'Unable to load trainer data';
+    if (!window.Api) {
+      window.location.href = 'index.html';
       return;
     }
 
-    renderTrainerChip(stats.username);
-    renderStatRail(stats);
+    const resp = await window.Api.getDashboard();
+    const stats = resp && resp.data ? resp.data : null;
+    if (!stats) {
+      window.location.href = 'index.html';
+      return;
+    }
+
+    renderTrainerStats(stats);
     renderLastBattle(stats.last_battle ?? null);
 
-    // Now load team (may return 404 if trainer has no team yet)
+    // Load team
     try {
       const teamResp = await window.Api.getTeam();
       if (teamResp && teamResp.data) {
-        renderTeamFromApi(teamResp.data);
+        renderTeamGrid(teamResp.data);
       } else {
-        if (noTeamEl) noTeamEl.hidden = false;
-        if (hasTeamEl) hasTeamEl.hidden = true;
+        renderTeamGrid(null);
       }
     } catch (teamErr) {
-      if (teamErr && teamErr.name === 'ApiError' && teamErr.status === 404) {
-        // No team yet — normal empty state
-        if (noTeamEl) noTeamEl.hidden = false;
-        if (hasTeamEl) hasTeamEl.hidden = true;
-      } else if (teamErr && teamErr.name === 'ApiError' && (teamErr.status === 401 || teamErr.status === 403)) {
-        window.location.href = 'index.html';
-      } else {
-        if (lastBattleEl) lastBattleEl.innerHTML = `<div class="error">Unable to load team data.</div>`;
-      }
+      renderTeamGrid(null);
     }
   } catch (err) {
     if (err && err.name === 'ApiError' && (err.status === 401 || err.status === 403)) {
       window.location.href = 'index.html';
-    } else {
-      if (lastBattleEl) lastBattleEl.innerHTML = `<div class="error">Unable to load trainer data</div>`;
+      return;
     }
+    console.error('Error loading dashboard data:', err);
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  initSidebarNav();
-  initMobileSidebarToggle();
+function initLogout() {
+  const logoutBtn = document.getElementById('logout-btn');
+  if (!logoutBtn) return;
+
+  logoutBtn.addEventListener('click', async () => {
+    if (typeof logoutTrainer === 'function') {
+      await logoutTrainer();
+    } else if (window.Api && typeof window.Api.logout === 'function') {
+      try {
+        await window.Api.logout();
+      } catch (e) {
+        // ignore network error
+      }
+    }
+    window.location.href = 'index.html';
+  });
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initLogout();
+    loadTrainerDashboardData();
+  });
+} else {
   initLogout();
-  // Load live dashboard data from backend
   loadTrainerDashboardData();
-  setActiveSection('overview');
-});
+}

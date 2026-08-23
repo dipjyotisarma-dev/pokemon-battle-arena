@@ -95,7 +95,42 @@ async function loadLeaderboardData() {
     }
   }
 }
+/* ---------- Context-Aware Navigation ---------- */
+function initContextAwareNavigation() {
+  const params = new URLSearchParams(window.location.search);
+  const from = params.get('from');
+  const backLink = document.getElementById('nav-back-link');
+  const brandLink = document.getElementById('brand-link');
 
-document.addEventListener('DOMContentLoaded', () => {
+  if (from === 'dashboard') {
+    if (backLink) {
+      backLink.textContent = '← Back to Dashboard';
+      backLink.href = 'dashboard.html';
+    }
+    if (brandLink) {
+      brandLink.href = 'dashboard.html';
+    }
+  } else {
+    // Default fallback to Home
+    if (backLink) {
+      backLink.textContent = '← Back to Home';
+      backLink.href = 'index.html';
+    }
+    if (brandLink) {
+      brandLink.href = 'index.html';
+    }
+  }
+}
+
+// Run immediately for instant link accuracy
+initContextAwareNavigation();
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => {
+    initContextAwareNavigation();
+    loadLeaderboardData();
+  });
+} else {
+  initContextAwareNavigation();
   loadLeaderboardData();
-});
+}

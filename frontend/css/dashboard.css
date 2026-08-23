@@ -1,378 +1,604 @@
 /* ============================================================
-   TRAINER DASHBOARD
+   POKÉMON BATTLE ARENA — TRAINER DASHBOARD (EMERGENT SYSTEM)
    ============================================================ */
 
-.app-shell {
-  display: grid;
-  grid-template-columns: 232px 1fr;
-  min-height: 100vh;
-}
-
-/* ---------- Sidebar ---------- */
-.sidebar {
-  background: var(--bg-elevated);
-  border-right: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  padding: var(--space-5) var(--space-3);
-  gap: var(--space-6);
-}
-
-.sidebar-brand {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  font-family: var(--font-display);
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  font-size: 0.95rem;
-  text-decoration: none;
-  padding-inline: var(--space-2);
-}
-
-.sidebar-nav {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-  flex: 1;
-}
-
-.sidebar-link {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: 0.7em var(--space-3);
-  border-radius: var(--radius-sm);
-  border: 1px solid transparent;
-  background: none;
-  cursor: pointer;
-  font-family: var(--font-display);
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
-  font-size: 0.88rem;
-  color: var(--text-muted);
-  text-decoration: none;
-  text-align: left;
-  transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease),
-    background var(--t-fast) var(--ease);
-}
-
-.sidebar-link .glyph {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  color: var(--text-faint);
-  width: 1.4em;
-  flex-shrink: 0;
-}
-
-.sidebar-link:hover {
-  color: var(--text);
-  border-color: var(--border);
-}
-
-.sidebar-link.is-active {
-  color: var(--bg);
-  background: var(--accent-primary);
-  border-color: var(--accent-primary);
-}
-
-.sidebar-link.is-active .glyph {
-  color: var(--bg);
-}
-
-.sidebar-link.link-danger {
-  color: var(--danger);
-}
-
-.sidebar-link.link-danger:hover {
-  border-color: var(--danger);
-}
-
-.sidebar-foot {
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: var(--text-faint);
-  padding-inline: var(--space-2);
-}
-
-/* ---------- Topbar ---------- */
-.app-topbar {
-  height: var(--header-height);
-  border-bottom: 1px solid var(--border);
+/* ---------- Site Header Inner & Brand ---------- */
+.site-header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-inline: var(--space-5);
-  background: rgba(10, 13, 18, 0.7);
-  backdrop-filter: blur(6px);
+  width: 100%;
+  padding: 0 clamp(24px, 6vw, 80px);
 }
 
-[data-theme='light'] .app-topbar {
-  background: rgba(255, 255, 255, 0.75);
-}
-
-.topbar-title {
-  font-size: 1.05rem;
-  margin: 0;
-}
-
-.trainer-chip {
+.brand {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  align-items: baseline;
+  gap: 12px;
+  text-decoration: none;
+  color: var(--text);
 }
 
-.trainer-chip .name {
+.brand b {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  color: var(--accent-primary);
+  text-transform: uppercase;
+}
+
+.brand span {
   font-family: var(--font-mono);
-  font-size: 0.82rem;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
   color: var(--text-muted);
 }
 
-.trainer-chip .name strong {
-  color: var(--text);
-}
-
-.mobile-nav-toggle {
-  display: none;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  width: 40px;
-  height: 40px;
-  color: var(--text);
-  cursor: pointer;
-}
-
-.app-content {
-  padding: var(--space-6) var(--space-5) var(--space-8);
-  max-width: 1080px;
-}
-
-.dash-view[hidden] {
-  display: none;
-}
-
-.view-header {
-  margin-bottom: var(--space-6);
-}
-
-.view-header .eyebrow {
-  display: block;
-  margin-bottom: var(--space-2);
-}
-
-/* ---------- Stat rail (scoreboard readout, not a SaaS metric card) ---------- */
-.stat-rail {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  margin-bottom: var(--space-6);
-  background: var(--surface);
-}
-
-.stat-cell {
-  padding: var(--space-4) var(--space-4);
-  border-right: 1px solid var(--border);
-}
-
-.stat-cell:last-child {
-  border-right: none;
-}
-
-.stat-cell .stat-label {
+.site-nav {
+  display: flex;
+  align-items: center;
+  gap: 28px;
   font-family: var(--font-mono);
-  font-size: 0.66rem;
-  letter-spacing: 0.12em;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  color: var(--text-faint);
-  display: block;
-  margin-bottom: var(--space-2);
+  letter-spacing: .08em;
 }
 
-.stat-cell .stat-value {
-  font-family: var(--font-mono);
-  font-size: 1.7rem;
+.site-nav a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--t-fast) var(--ease);
+}
+
+.site-nav a:hover,
+.site-nav a.active {
   color: var(--text);
 }
 
-.stat-cell.accent .stat-value {
+.icon-button {
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--accent-primary);
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: border-color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+}
+
+.icon-button:hover {
+  border-color: var(--accent-primary);
+  transform: scale(1.05);
+}
+
+/* ---------- Buttons ---------- */
+.button {
+  border: 1px solid transparent;
+  padding: 11px 20px;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-radius: 2px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+
+.button:hover {
+  transform: translateY(-2px);
+}
+
+.button-gold {
+  background: var(--accent-primary);
+  border-color: var(--accent-primary);
+  color: #0a0d12;
+}
+
+.button-gold:hover {
+  background: #f8c524;
+  border-color: #f8c524;
+  box-shadow: 0 4px 16px rgba(242, 183, 5, 0.3);
+}
+
+.button-outline {
+  background: transparent;
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.button-outline:hover {
+  border-color: var(--accent-secondary);
+  color: var(--accent-secondary);
+  box-shadow: 0 4px 16px rgba(47, 217, 198, 0.2);
+}
+
+.button-cyan {
+  background: var(--accent-secondary);
+  border-color: var(--accent-secondary);
+  color: #0a0d12;
+}
+
+.button-cyan:hover {
+  background: #4ae4d3;
+  border-color: #4ae4d3;
+  box-shadow: 0 4px 16px rgba(47, 217, 198, 0.3);
+}
+
+/* ---------- Page Shell & Heading ---------- */
+.page-shell {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px clamp(24px, 5vw, 70px) 90px;
+}
+
+.page-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 36px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+
+.page-heading h1 {
+  font-family: var(--font-display);
+  font-size: clamp(36px, 4.2vw, 50px);
+  font-weight: 900;
+  line-height: 1;
+  text-transform: uppercase;
+  letter-spacing: -.01em;
+  margin: 6px 0 0;
+  color: var(--text);
+}
+
+.page-heading h1 em {
+  font-style: normal;
   color: var(--accent-primary);
 }
 
-/* ---------- Last battle summary strip ---------- */
-.last-battle {
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4) var(--space-5);
-  margin-bottom: var(--space-6);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-  flex-wrap: wrap;
-}
-
-.last-battle .label {
+.text-link {
+  background: transparent;
+  border: 0;
+  padding: 0;
+  color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
+  font-size: 12px;
+  font-weight: 600;
   text-transform: uppercase;
-  color: var(--text-faint);
-  margin-bottom: var(--space-1);
-  display: block;
+  letter-spacing: .08em;
+  cursor: pointer;
+  text-decoration: none;
+  transition: color var(--t-fast) var(--ease);
 }
 
-.last-battle .result-win {
-  color: var(--success);
-}
-
-.last-battle .result-loss {
+.text-link:hover {
   color: var(--danger);
 }
 
-/* ---------- No-team empty state ---------- */
-.empty-state {
-  border: 1px dashed var(--border-strong);
-  border-radius: var(--radius-md);
-  padding: var(--space-7) var(--space-5);
-  text-align: center;
-  max-width: 460px;
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .19em;
+  text-transform: uppercase;
+  color: var(--accent-secondary);
+  margin: 0 0 10px;
 }
 
-.empty-state h3 {
-  margin-bottom: var(--space-3);
+/* ---------- 2-Panel Dashboard Grid ---------- */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+  margin-bottom: 60px;
 }
 
-.empty-state p {
-  margin-bottom: var(--space-5);
+.panel {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  padding: 28px 32px;
+  border-radius: var(--radius-sm);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
 }
 
-/* ---------- Roster preview (team exists) ---------- */
-.roster-preview {
+.rank-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid var(--border);
+  padding: 6px 0 18px;
+  margin-bottom: 22px;
+}
+
+.rank-line strong {
+  font-family: var(--font-display);
+  font-size: 38px;
+  font-weight: 800;
+  color: var(--accent-primary);
+  line-height: 1;
+}
+
+.rank-line span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+
+.metric-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-3);
-  margin-bottom: var(--space-6);
+  gap: 12px;
+  margin-bottom: 18px;
 }
 
-.roster-card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--space-3);
-  display: flex;
-  gap: var(--space-3);
-  align-items: center;
+.metric-grid div + div {
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
 }
 
-.roster-card .mon-portrait {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-sm);
-  background: var(--surface-2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+.metric-grid b {
+  display: block;
   font-family: var(--font-mono);
-  font-size: 0.68rem;
-  color: var(--text-faint);
-  flex-shrink: 0;
-  overflow: hidden;
+  font-size: 30px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.1;
 }
 
-.roster-card .mon-portrait img {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
+.metric-grid span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: .06em;
+  margin-top: 4px;
+  display: block;
 }
 
-.roster-card .mon-name {
-  font-family: var(--font-display);
+.muted {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  margin: 0;
+}
+
+/* ---------- Last Battle Card & Empty State ---------- */
+.last-battle-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding-top: 4px;
+}
+
+.last-battle-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.status-badge {
+  font-family: var(--font-mono);
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
-  font-size: 0.92rem;
+  padding: 3px 9px;
+  border-radius: var(--radius-sm);
+  letter-spacing: .08em;
 }
 
-.roster-actions {
+.status-badge.completed {
+  background: rgba(76, 195, 138, 0.12);
+  color: var(--success);
+  border: 1px solid var(--success);
+}
+
+.status-badge.abandoned {
+  background: rgba(229, 72, 77, 0.12);
+  color: var(--danger);
+  border: 1px solid var(--danger);
+}
+
+.last-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 16px 0;
+}
+
+.last-metrics div + div {
+  border-left: 1px solid var(--border);
+  padding-left: 20px;
+}
+
+.last-metrics b {
+  font-family: var(--font-mono);
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text);
+  display: block;
+}
+
+.last-metrics span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+  display: block;
+}
+
+.empty-state {
+  min-height: 160px;
   display: flex;
-  gap: var(--space-3);
+  flex-direction: column;
+  justify-content: center;
+  border-left: 2px solid var(--accent-secondary);
+  padding-left: 20px;
+}
+
+.empty-state strong {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.empty-state span {
+  color: var(--text-muted);
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 380px;
+}
+
+/* ---------- Roster Section & 3x2 Grid ---------- */
+.roster-section {
+  margin-bottom: 48px;
+}
+
+.section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 22px;
+}
+
+.section-head h2 {
+  font-family: var(--font-display);
+  font-size: 34px;
+  font-weight: 800;
+  text-transform: uppercase;
+  margin: 4px 0 0;
+  color: var(--text);
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  border-top: 1px solid var(--border);
+  border-left: 1px solid var(--border);
+  background: var(--bg-elevated);
+}
+
+.pokemon-slot {
+  min-height: 200px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 22px;
+  background: var(--bg-elevated);
+  position: relative;
+  transition: background var(--t-fast) var(--ease);
+}
+
+.pokemon-slot:hover {
+  background: var(--surface);
+}
+
+.slot-num {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  letter-spacing: .08em;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.pokemon-slot img {
+  width: 96px;
+  height: 96px;
+  object-fit: contain;
+  float: right;
+  margin-left: 8px;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.3));
+}
+
+.pokemon-slot strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text);
+  letter-spacing: .02em;
+}
+
+.type-chip {
+  display: inline-block;
+  padding: 2px 7px;
+  border: 1px solid var(--border-strong);
+  color: var(--accent-secondary);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin: 6px 4px 10px 0;
+  border-radius: var(--radius-sm);
+}
+
+.slot-moves {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  clear: both;
+}
+
+.empty-slot {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 200px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  padding: 24px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
+}
+
+.empty-slot b {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--border-strong);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.empty-slot span {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .06em;
+}
+
+/* ---------- Battle Gate (Action Band) ---------- */
+.action-band {
+  border: 1px solid var(--accent-primary);
+  padding: 22px 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-elevated);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 20px rgba(242, 183, 5, 0.08);
+}
+
+.action-band-copy strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--text);
+  margin: 2px 0 3px;
+}
+
+.action-band-copy span {
+  color: var(--text-muted);
+  font-size: 13px;
 }
 
 /* ============================================================
-   RESPONSIVE — SIDEBAR
+   FOOTER (PRODUCTION GAME / LEAGUE BRANDING)
    ============================================================ */
-@media (max-width: 1024px) and (min-width: 769px) {
-  .app-shell {
-    grid-template-columns: 84px 1fr;
-  }
-
-  .sidebar-brand span:last-child,
-  .sidebar-link .label {
-    display: none;
-  }
-
-  .sidebar-link {
-    justify-content: center;
-  }
-
-  .sidebar-link .glyph {
-    width: auto;
-    font-size: 1rem;
-  }
+.site-footer {
+  border-top: 1px solid var(--border);
+  padding: 48px clamp(24px, 6vw, 90px) 28px;
+  background: var(--bg-elevated);
+  color: var(--text-muted);
 }
 
-@media (max-width: 768px) {
-  .app-shell {
-    grid-template-columns: 1fr;
-  }
-
-  .sidebar {
-    position: fixed;
-    inset: 0 30% 0 0;
-    z-index: 200;
-    transform: translateX(-100%);
-    transition: transform var(--t-med) var(--ease);
-    box-shadow: var(--shadow-hard);
-  }
-
-  .sidebar.is-open {
-    transform: translateX(0);
-  }
-
-  .mobile-nav-toggle {
-    display: block;
-  }
-
-  .roster-preview {
-    grid-template-columns: 1fr;
-  }
-
-  .stat-rail {
-    grid-template-columns: repeat(2, 1fr);
-  }
-
-  .stat-cell:nth-child(2) {
-    border-right: none;
-  }
-
-  .stat-cell:nth-child(3),
-  .stat-cell:nth-child(4) {
-    border-top: 1px solid var(--border);
-  }
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 40px;
+  margin-bottom: 36px;
 }
 
-.sidebar-scrim {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(4, 5, 8, 0.6);
-  z-index: 190;
+.footer-brand-col .brand {
+  margin-bottom: 8px;
 }
 
-.sidebar-scrim.is-open {
-  display: block;
+.footer-tagline {
+  max-width: 380px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+
+.footer-nav-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-col-title {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+}
+
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.footer-links a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color var(--t-fast) var(--ease);
+}
+
+.footer-links a:hover,
+.footer-links a.active {
+  color: var(--text);
+}
+
+.footer-bottom {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: .04em;
 }

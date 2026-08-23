@@ -13,7 +13,7 @@
 
   <header class="site-header">
     <div class="container">
-      <a href="index.html" class="brand">
+      <a href="index.html" class="brand" id="brand-link">
         <span class="brand-mark" aria-hidden="true"></span>
         Battle Arena
       </a>
@@ -22,7 +22,7 @@
           <span class="dot" aria-hidden="true"></span>
           <span class="theme-label">Dark</span>
         </button>
-        <a href="index.html" class="btn btn-ghost">Home</a>
+        <a href="index.html" class="btn btn-ghost" id="nav-back-link" data-testid="leaderboard-back-link">← Back to Home</a>
       </div>
     </div>
   </header>
@@ -52,13 +52,12 @@
   </main>
 
   <footer class="site-footer">
-    <div class="container">
-      <span>Pokémon Battle Arena — Frontend Prototype</span>
-      <span>Demo data only, resets on refresh</span>
+    <div class="footer-inner" style="max-width: 1080px; margin-inline: auto; display: flex; justify-content: space-between; padding-block: var(--space-4);">
+      <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-faint);">© 2026 Pokémon Battle Arena. An independent tactical combat simulator.</span>
+      <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-faint);">All Pokémon media and trademarks belong to their respective copyright holders.</span>
     </div>
   </footer>
 
-  <script src="js/data.js"></script>
   <script src="js/theme.js"></script>
   <script src="js/session.js"></script>
   <script src="js/api.js"></script>

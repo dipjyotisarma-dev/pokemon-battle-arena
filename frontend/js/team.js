@@ -23,6 +23,18 @@ let pokemonCatalogPromise = null;
 
 // Cache move options per pokemon id (from GET /team/{pokemon_id}/move-options)
 const moveOptionsCache = {};
+let currentSection = 'create-team';
+
+function typePillsHTML(types) {
+  if (!types || !Array.isArray(types)) return '';
+  return types.map((t) => `<span class="type-pill" data-type="${t}">${t}</span>`).join('');
+}
+
+function pokemonPortraitHTML(pokemonEntry, size) {
+  const path = `assets/images/pokemon/${pokemonEntry.id}.png`;
+  const initials = (pokemonEntry.name || '').slice(0, 2).toUpperCase();
+  return `<img src="${path}" alt="${pokemonEntry.name || ''}" width="${size}" height="${size}" onerror="this.replaceWith(Object.assign(document.createElement('span'), {textContent:'${initials}', style:'font-family:var(--font-mono);font-size:0.7rem;color:var(--text-faint);'}))" />`;
+}
 
 // Small helper to load Api/Session if not yet present
 function _loadScript(src) {
@@ -738,18 +750,21 @@ async function saveTeam() {
 
     // Re-render views so Create Team locks into "Team Already Exists"
     if (currentSection === 'create-team') {
-      await renderCreateTeam();
+      currentSection = 'edit-team';
       const createFeedback = document.getElementById('save-feedback');
-      if (createFeedback) createFeedback.textContent = 'Team created successfully!';
+      if (createFeedback) createFeedback.textContent = 'Team created successfully! Returning to Dashboard...';
     } else if (currentSection === 'edit-team') {
-      await renderEditTeam();
       const editFeedback = document.getElementById('save-feedback');
-      if (editFeedback) editFeedback.textContent = 'Team updated successfully!';
+      if (editFeedback) editFeedback.textContent = 'Team updated successfully! Returning to Dashboard...';
     }
 
-    // Refresh Overview dashboard so roster preview stays synchronized
+    // Refresh Overview dashboard if function exists or redirect to dashboard after brief delay
     if (typeof loadTrainerDashboardData === 'function') {
       loadTrainerDashboardData();
+    } else {
+      setTimeout(() => {
+        window.location.href = 'dashboard.html';
+      }, 750);
     }
   } catch (err) {
     if (err && err.name === 'ApiError') {
@@ -766,12 +781,74 @@ async function saveTeam() {
   }
 }
 
-function initTeamBuilder() {
+async function initTeamBuilder() {
   initPokemonPickerFilters();
   initPokemonActionButtons();
   initConfirmRemoveButton();
   initMovePickerDone();
-  document.getElementById('save-team-btn').addEventListener('click', () => { saveTeam(); });
+  const saveBtn = document.getElementById('save-team-btn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => { saveTeam(); });
+  }
+
+  // Load team or initialize blank
+  try {
+    await ensureApiLoaded();
+    await ensurePokemonCatalogLoaded();
+    const resp = await window.Api.getTeam();
+    if (resp && resp.data && Array.isArray(resp.data.slots) && resp.data.slots.length > 0) {
+      currentSection = 'edit-team';
+      const existsNotice = document.getElementById('team-exists-notice');
+      if (existsNotice) existsNotice.hidden = false;
+      const slots = resp.data.slots;
+      const mapped = new Array(TEAM_SIZE).fill(null);
+      slots.forEach((slot) => {
+        const idx = slot.slot - 1;
+        mapped[idx] = { pokemonId: slot.pokemon_id, moveIds: slot.move_ids.map((id) => Number(id)) };
+        if (slot.moves && Array.isArray(slot.moves)) {
+          if (!moveOptionsCache[slot.pokemon_id]) {
+            moveOptionsCache[slot.pokemon_id] = [];
+          }
+          slot.moves.forEach((m) => {
+            if (!moveOptionsCache[slot.pokemon_id].some((existing) => existing.id === Number(m.id))) {
+              moveOptionsCache[slot.pokemon_id].push({
+                id: Number(m.id),
+                display_name: m.display_name || m.move_name,
+                move_type: m.move_type,
+                category: m.category,
+                base_power: m.base_power,
+              });
+            }
+          });
+        }
+      });
+      enterTeamBuilder(mapped);
+    } else {
+      currentSection = 'create-team';
+      const emptyNotice = document.getElementById('team-builder-empty-notice');
+      if (emptyNotice) emptyNotice.hidden = false;
+      enterTeamBuilder(new Array(TEAM_SIZE).fill(null));
+    }
+  } catch (err) {
+    if (err && err.name === 'ApiError' && err.status === 404) {
+      currentSection = 'create-team';
+      const emptyNotice = document.getElementById('team-builder-empty-notice');
+      if (emptyNotice) emptyNotice.hidden = false;
+      enterTeamBuilder(new Array(TEAM_SIZE).fill(null));
+      return;
+    }
+    if (err && err.name === 'ApiError' && (err.status === 401 || err.status === 403)) {
+      window.location.href = 'index.html';
+      return;
+    }
+    console.error('Error loading team:', err);
+    currentSection = 'create-team';
+    enterTeamBuilder(new Array(TEAM_SIZE).fill(null));
+  }
 }
 
-document.addEventListener('DOMContentLoaded', initTeamBuilder);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initTeamBuilder);
+} else {
+  initTeamBuilder();
+}
