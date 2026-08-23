@@ -426,11 +426,11 @@ async function loadPokedexData() {
 /* ---------- Context-Aware Navigation ---------- */
 function initContextAwareNavigation() {
   const params = new URLSearchParams(window.location.search);
-  const from = params.get('from');
+  const context = params.get('from') === 'dashboard' ? 'dashboard' : 'home';
   const backLink = document.getElementById('nav-back-link');
   const brandLink = document.getElementById('brand-link');
 
-  if (from === 'dashboard') {
+  if (context === 'dashboard') {
     if (backLink) {
       backLink.textContent = '← Back to Dashboard';
       backLink.href = 'dashboard.html';
@@ -447,6 +447,26 @@ function initContextAwareNavigation() {
     if (brandLink) {
       brandLink.href = 'index.html';
     }
+  }
+
+  // Propagate origin context to header navigation links
+  const navLeaderboard = document.querySelector('[data-testid="nav-leaderboard"]') || document.querySelector('header a[href*="leaderboard"]');
+  if (navLeaderboard) {
+    navLeaderboard.href = `leaderboard.html?from=${context}`;
+  }
+  const navPokedex = document.querySelector('[data-testid="nav-pokedex"]') || document.querySelector('header a[href*="pokedex"]');
+  if (navPokedex) {
+    navPokedex.href = `pokedex.html?from=${context}`;
+  }
+
+  // Propagate origin context to footer navigation links
+  const footerLeaderboard = document.querySelector('.footer-links a[href*="leaderboard"]');
+  if (footerLeaderboard) {
+    footerLeaderboard.href = `leaderboard.html?from=${context}`;
+  }
+  const footerPokedex = document.querySelector('.footer-links a[href*="pokedex"]');
+  if (footerPokedex) {
+    footerPokedex.href = `pokedex.html?from=${context}`;
   }
 }
 

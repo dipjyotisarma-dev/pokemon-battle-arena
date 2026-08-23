@@ -1,49 +1,59 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-page="leaderboard">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Leaderboard — Pokémon Battle Arena</title>
   <meta name="description" content="Top trainers in the Pokémon Battle Arena, ranked by completed match points." />
+  <link rel="icon" href="data:," />
   <link rel="stylesheet" href="css/style.css" />
   <link rel="stylesheet" href="css/leaderboard.css" />
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
 
+  <!-- ============ SITE HEADER ============ -->
   <header class="site-header">
-    <div class="container">
-      <a href="index.html" class="brand" id="brand-link">
-        <span class="brand-mark" aria-hidden="true"></span>
-        Battle Arena
+    <div class="site-header-inner">
+      <a class="brand" href="index.html" id="brand-link" data-testid="brand-home">
+        <b>PBA</b>
+        <span>Pokémon Battle Arena</span>
       </a>
-      <div class="header-actions">
-        <button class="theme-toggle" type="button" aria-pressed="false">
-          <span class="dot" aria-hidden="true"></span>
-          <span class="theme-label">Dark</span>
-        </button>
-        <a href="index.html" class="btn btn-ghost" id="nav-back-link" data-testid="leaderboard-back-link">← Back to Home</a>
-      </div>
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="dashboard.html" data-testid="nav-dashboard">Dashboard</a>
+        <a href="pokedex.html" data-testid="nav-pokedex">Pokédex</a>
+        <a class="active" href="leaderboard.html" data-testid="nav-leaderboard">Leaderboard</a>
+        <button class="icon-button theme-toggle" id="theme-toggle" type="button" aria-label="Toggle theme" data-testid="leaderboard-theme-toggle">◐</button>
+        <a href="index.html" class="button button-outline" id="nav-back-link" data-testid="leaderboard-back-link" style="font-size: 11px; padding: 6px 14px;">← Back to Home</a>
+      </nav>
     </div>
   </header>
 
-  <main id="main" class="leaderboard-main" tabindex="-1">
-    <div class="view-header">
-      <span class="eyebrow">Ranked by Completed Matches</span>
-      <h2>Leaderboard</h2>
+  <!-- ============ MAIN CONTENT (.page-shell) ============ -->
+  <main id="main" class="page-shell" tabindex="-1">
+    <!-- PAGE HEADING -->
+    <div class="page-heading">
+      <div>
+        <p class="eyebrow">LEAGUE STANDINGS / COMPETITIVE RANKINGS</p>
+        <h1>Leader<em>board</em></h1>
+        <p class="heading-desc">Trainers ranked by completed match victory points.</p>
+      </div>
+      <span class="season-tag" id="leaderboard-total-tag">STANDINGS</span>
     </div>
 
-    <div class="podium" id="podium"></div>
+    <!-- TOP 3 PODIUM -->
+    <section class="podium" id="podium" aria-label="Top 3 Trainers Podium"></section>
 
-    <div class="rank-table-wrap">
-      <table class="rank-table">
+    <!-- FULL RANKING TABLE -->
+    <div class="table-wrap">
+      <table class="rank-table" data-testid="leaderboard-table">
         <thead>
           <tr>
-            <th scope="col">Rank</th>
+            <th scope="col" style="width: 90px;">Rank</th>
             <th scope="col">Trainer</th>
-            <th scope="col">Matches</th>
-            <th scope="col">Wins</th>
-            <th scope="col">Points</th>
+            <th scope="col" style="text-align: right; width: 140px;">Matches</th>
+            <th scope="col" style="text-align: right; width: 140px;">Wins</th>
+            <th scope="col" style="text-align: right; width: 160px;">Points</th>
           </tr>
         </thead>
         <tbody id="rank-table-body"></tbody>
@@ -51,10 +61,31 @@
     </div>
   </main>
 
+  <!-- ============ FOOTER ============ -->
   <footer class="site-footer">
-    <div class="footer-inner" style="max-width: 1080px; margin-inline: auto; display: flex; justify-content: space-between; padding-block: var(--space-4);">
-      <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-faint);">© 2026 Pokémon Battle Arena. An independent tactical combat simulator.</span>
-      <span style="font-family: var(--font-mono); font-size: 0.72rem; color: var(--text-faint);">All Pokémon media and trademarks belong to their respective copyright holders.</span>
+    <div class="footer-inner">
+      <div class="footer-brand-col">
+        <a class="brand" href="index.html">
+          <b>PBA</b>
+          <span>Pokémon Battle Arena</span>
+        </a>
+        <p class="footer-tagline">Competitive 6-v-6 tactical battles. Build your team, read the matchup, and take the turn.</p>
+      </div>
+
+      <div class="footer-nav-col">
+        <span class="footer-col-title">Arena Navigation</span>
+        <div class="footer-links">
+          <a href="index.html">Home</a>
+          <a href="dashboard.html">Dashboard</a>
+          <a href="pokedex.html">Pokédex</a>
+          <a href="leaderboard.html" class="active">Leaderboard</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <span>© 2026 Pokémon Battle Arena. An independent tactical combat simulator.</span>
+      <span>All Pokémon media and trademarks belong to their respective copyright holders.</span>
     </div>
   </footer>
 
