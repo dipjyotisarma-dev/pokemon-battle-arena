@@ -11,6 +11,12 @@ let allPokemon = [];
 const pokemonDetailCache = {};
 const moveOptionsCache = {};
 
+function registerCurrentPage() {
+  if (window.NavigationSession) {
+    NavigationSession.setCurrentPage('pokedex.html');
+  }
+}
+
 /* ---------- Helper: Category Formatting ---------- */
 function formatCategoryName(category) {
   if (!category) return 'Standard';
@@ -475,10 +481,12 @@ initContextAwareNavigation();
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
+    registerCurrentPage();
     initContextAwareNavigation();
     loadPokedexData();
   });
 } else {
+  registerCurrentPage();
   initContextAwareNavigation();
   loadPokedexData();
 }

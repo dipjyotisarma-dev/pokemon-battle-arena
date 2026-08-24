@@ -6,6 +6,21 @@
    - POST /auth/logout (Session logout)
    ============================================================ */
 
+function registerCurrentPage() {
+  if (!window.NavigationSession) {
+    window.location.href = 'index.html';
+    return false;
+  }
+
+  if (!NavigationSession.isSessionActive()) {
+    window.location.href = 'index.html';
+    return false;
+  }
+
+  NavigationSession.setCurrentPage('dashboard.html');
+  return true;
+}
+
 function formatTypeName(t) {
   if (!t) return '';
   const s = String(t).trim();
@@ -224,16 +239,26 @@ function initLogout() {
         // ignore network error
       }
     }
+    if (window.NavigationSession) {
+      NavigationSession.clear();
+    }
+
     window.location.href = 'index.html';
   });
 }
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
+    if (!registerCurrentPage()) return;
+
     initLogout();
     loadTrainerDashboardData();
   });
 } else {
-  initLogout();
-  loadTrainerDashboardData();
+  if (!registerCurrentPage()) {
+    // Redirect initiated by registerCurrentPage().
+  } else {
+    initLogout();
+    loadTrainerDashboardData();
+  }
 }

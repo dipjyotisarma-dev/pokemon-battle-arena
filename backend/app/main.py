@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from app.core.config import settings
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 import app.db.models
@@ -27,20 +28,29 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+cors_origins = [
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://127.0.0.1:8000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8080",
+    "http://localhost:8080",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
+    "http://127.0.0.1:5000",
+    "http://localhost:5000",
+]
+
+if settings.CORS_ORIGINS:
+    cors_origins.extend(
+        origin.strip()
+        for origin in settings.CORS_ORIGINS.split(",")
+        if origin.strip()
+    )
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://127.0.0.1:5500",
-        "http://localhost:5500",
-        "http://127.0.0.1:8000",
-        "http://localhost:8000",
-        "http://127.0.0.1:8080",
-        "http://localhost:8080",
-        "http://127.0.0.1:3000",
-        "http://localhost:3000",
-        "http://127.0.0.1:5000",
-        "http://localhost:5000",
-    ],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,3 +67,8 @@ app.include_router(battle_router)
 @app.get("/")
 async def home():
     return {"message": "Application started"}
+
+
+@app.get("/health")
+async def health_check():
+    return {"status": "ok"}

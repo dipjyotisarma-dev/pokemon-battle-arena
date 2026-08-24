@@ -40,6 +40,13 @@ let matchCompleted = false;
 /* ============================================================
    SETUP & HELPERS
    ============================================================ */
+
+function registerCurrentPage() {
+  if (window.NavigationSession) {
+    NavigationSession.setCurrentPage('battle.html');
+  }
+}
+
 function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -988,6 +995,8 @@ async function confirmExitBattle() {
    INIT & EVENT LISTENERS
    ============================================================ */
 function initBattlePage() {
+  registerCurrentPage();
+  
   document.getElementById('start-battle-btn')?.addEventListener('click', handleStartBattleClick);
   document.getElementById('choose-pokemon-btn')?.addEventListener('click', showPlayerSelectScreen);
   document.getElementById('matchup-back-btn')?.addEventListener('click', handleBackToSelection);
@@ -1001,4 +1010,4 @@ function initBattlePage() {
   initBattle();
 }
 
-document.addEventListener('DOMContentLoaded', initBattlePage);
+document.addEventListener('DOMContentLoaded', initBattlePage);

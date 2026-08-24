@@ -26,6 +26,21 @@ let pokemonCatalogPromise = null;
 const moveOptionsCache = {};
 let currentSection = 'create-team';
 
+function registerCurrentPage() {
+  if (!window.NavigationSession) {
+    window.location.href = 'index.html';
+    return false;
+  }
+
+  if (!NavigationSession.isSessionActive()) {
+    window.location.href = 'index.html';
+    return false;
+  }
+
+  NavigationSession.setCurrentPage('team.html');
+  return true;
+}
+
 /* ---------- Helper: Category Formatting & Badges ---------- */
 function formatCategoryName(category) {
   if (!category) return 'Standard';
@@ -835,7 +850,15 @@ async function initTeamBuilder() {
 }
 
 if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initTeamBuilder);
+  document.addEventListener('DOMContentLoaded', () => {
+    if (!registerCurrentPage()) return;
+
+    initTeamBuilder();
+  });
 } else {
-  initTeamBuilder();
+  if (!registerCurrentPage()) {
+    // Redirect initiated by registerCurrentPage().
+  } else {
+    initTeamBuilder();
+  }
 }

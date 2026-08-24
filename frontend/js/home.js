@@ -90,6 +90,13 @@ function initLoginForm() {
     }
 
     // On success, redirect to dashboard
+    // On successful login, start a new tab navigation session
+    if (window.NavigationSession) {
+      NavigationSession.clear();
+      NavigationSession.startSession();
+      NavigationSession.setCurrentPage('dashboard.html');
+    }
+
     window.location.href = 'dashboard.html';
   });
 }

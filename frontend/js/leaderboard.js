@@ -7,6 +7,12 @@
    - Context-aware navigation: ?from=home vs ?from=dashboard
    ============================================================ */
 
+function registerCurrentPage() {
+  if (window.NavigationSession) {
+    NavigationSession.setCurrentPage('leaderboard.html');
+  }
+}
+
 function getAuthenticatedUsername() {
   try {
     if (window.Session && typeof window.Session.getTrainer === 'function') {
@@ -250,10 +256,12 @@ initContextAwareNavigation();
 
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', () => {
+    registerCurrentPage();
     initContextAwareNavigation();
     loadLeaderboardData();
   });
 } else {
+  registerCurrentPage();
   initContextAwareNavigation();
   loadLeaderboardData();
 }
