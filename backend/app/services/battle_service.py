@@ -908,6 +908,41 @@ def exit_battle(
         )
 
     if battle.status not in ACTIVE_BATTLE_STATUSES:
+        if battle.status in {"abandoned", "battle_complete"}:
+            leaderboard_entries = (
+                db.query(User, Leaderboard)
+                .join(
+                    Leaderboard,
+                    User.id == Leaderboard.trainer_id,
+                )
+                .filter(
+                    User.role == "trainer"
+                )
+                .order_by(
+                    Leaderboard.points.desc(),
+                    Leaderboard.wins.desc(),
+                    Leaderboard.total_matches.asc(),
+                    User.username.asc(),
+                )
+                .all()
+            )
+            rank = None
+            for position, (user, leaderboard) in enumerate(
+                leaderboard_entries,
+                start=1,
+            ):
+                if user.id == trainer_id:
+                    rank = position
+                    break
+
+            return (
+                battle,
+                battle.completed_matches,
+                battle.completed_wins,
+                battle.completed_points,
+                rank,
+            )
+
         raise ValueError(
             "The battle cannot be exited from its current state."
         )
@@ -1335,7 +1370,8 @@ def start_battle(
     The battle starts in match_preparation state.
     """
 
-    # Prevent multiple active battles for the same trainer.
+    # If an existing active battle exists for the same trainer,
+    # safely abandon it using the standard exit_battle logic.
     existing_battle = (
         db.query(Battle)
         .filter(
@@ -1346,8 +1382,10 @@ def start_battle(
     )
 
     if existing_battle is not None:
-        raise ValueError(
-            "You already have an active battle."
+        exit_battle(
+            db=db,
+            battle_id=existing_battle.id,
+            trainer_id=trainer_id,
         )
 
     # Snapshot trainer's finalized team.

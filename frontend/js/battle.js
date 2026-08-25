@@ -58,6 +58,19 @@ function getPokemonTypes(p) {
   return types;
 }
 
+function typePillsHTML(types) {
+  if (!Array.isArray(types)) return '';
+  return types.map((t) => `<span class="type-pill" data-type="${t}">${t}</span>`).join('');
+}
+
+function pokemonPortraitHTML(pokemonEntry, size = 48) {
+  if (!pokemonEntry) return '';
+  const path = `assets/images/pokemon/${pokemonEntry.id}.png`;
+  const displayName = pokemonEntry.display_name || pokemonEntry.name || 'Pokémon';
+  const initials = displayName.slice(0, 2).toUpperCase();
+  return `<img src="${path}" alt="${displayName}" width="${size}" height="${size}" onerror="this.replaceWith(Object.assign(document.createElement('span'), {textContent:'${initials}', style:'font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--text-muted);'}))" />`;
+}
+
 function setMoveControlsEnabled(enabled) {
   const panel = document.getElementById('move-panel');
   if (!panel) return;
@@ -959,11 +972,45 @@ function showSessionSummary() {
   document.getElementById('session-rank').textContent = currentRank ? `#${currentRank}` : '—';
 }
 
+let isExplicitlyExiting = false;
+
+function sendKeepaliveAbandon() {
+  if (battleId && !matchCompleted && !isExplicitlyExiting) {
+    try {
+      const baseUrl = window.Api?.resolveBaseUrl ? window.Api.resolveBaseUrl() : 'http://127.0.0.1:8000';
+      const url = `${baseUrl}/battle/${battleId}/exit`;
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        credentials: 'include'
+      });
+    } catch (e) {
+      // Best-effort during page teardown
+    }
+  }
+}
+
+window.addEventListener('pagehide', sendKeepaliveAbandon);
+
+function isPageReload() {
+  try {
+    const navEntries = performance.getEntriesByType('navigation');
+    if (navEntries && navEntries.length > 0) {
+      return navEntries[0].type === 'reload';
+    }
+    return performance.navigation && performance.navigation.type === 1;
+  } catch (e) {
+    return false;
+  }
+}
+
 function exitBattle() {
   openModal('confirm-exit-modal');
 }
 
 async function confirmExitBattle() {
+  isExplicitlyExiting = true;
   closeModal('confirm-exit-modal');
   matchInProgress = false;
   matchCompleted = true;
@@ -996,6 +1043,12 @@ async function confirmExitBattle() {
    ============================================================ */
 function initBattlePage() {
   registerCurrentPage();
+
+  if (isPageReload()) {
+    console.log('[BATTLE] Page reload detected -> Redirecting to dashboard.');
+    window.location.replace('dashboard.html');
+    return;
+  }
   
   document.getElementById('start-battle-btn')?.addEventListener('click', handleStartBattleClick);
   document.getElementById('choose-pokemon-btn')?.addEventListener('click', showPlayerSelectScreen);
