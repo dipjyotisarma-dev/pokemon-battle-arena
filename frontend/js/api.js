@@ -12,15 +12,48 @@
     }
   }
 
+  /* ============================================================
+     API CONFIGURATION
+     Configure the backend API URL for local development and production.
+     When deploying to Vercel, replace PRODUCTION_API_URL below with
+     your actual Render backend URL (e.g., 'https://pokemon-battle-arena.onrender.com').
+     ============================================================ */
+  const PRODUCTION_API_URL = ''; // <-- INSERT YOUR RENDER BACKEND URL HERE (e.g. 'https://your-service.onrender.com')
+
+  function resolveBaseUrl() {
+    // 1. Explicit runtime override if injected via window.API_BASE_URL
+    if (typeof window !== 'undefined' && window.API_BASE_URL) {
+      return String(window.API_BASE_URL).replace(/\/+$/, '');
+    }
+
+    // 2. Local development detection (localhost / 127.0.0.1 / 0.0.0.0)
+    if (typeof window !== 'undefined' && window.location) {
+      const hostname = window.location.hostname;
+      if (hostname === 'localhost') {
+        return 'http://localhost:8000';
+      }
+      if (hostname === '127.0.0.1' || hostname === '0.0.0.0') {
+        return 'http://127.0.0.1:8000';
+      }
+    }
+
+    // 3. Production Render backend URL configured above
+    if (PRODUCTION_API_URL && PRODUCTION_API_URL.trim()) {
+      return PRODUCTION_API_URL.trim().replace(/\/+$/, '');
+    }
+
+    // 4. Default local fallback
+    return 'http://127.0.0.1:8000';
+  }
+
   const ApiConfig = {
-    // Dynamically match hostname so localhost:5500 calls localhost:8000 and 127.0.0.1:5500 calls 127.0.0.1:8000
-    baseUrl: (typeof window !== 'undefined' && window.location && window.location.hostname === 'localhost')
-      ? 'http://localhost:8000'
-      : 'http://127.0.0.1:8000',
+    baseUrl: resolveBaseUrl(),
   };
 
   function setBaseUrl(url) {
-    ApiConfig.baseUrl = url;
+    if (url) {
+      ApiConfig.baseUrl = String(url).replace(/\/+$/, '');
+    }
   }
 
   async function fetchWrapper(method, endpoint, { body = null, form = false, headers = {} } = {}) {
