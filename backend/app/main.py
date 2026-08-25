@@ -28,29 +28,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-cors_origins = [
-    "http://127.0.0.1:5500",
-    "http://localhost:5500",
-    "http://127.0.0.1:8000",
-    "http://localhost:8000",
-    "http://127.0.0.1:8080",
-    "http://localhost:8080",
-    "http://127.0.0.1:3000",
-    "http://localhost:3000",
-    "http://127.0.0.1:5000",
-    "http://localhost:5000",
-]
-
-if settings.CORS_ORIGINS:
-    cors_origins.extend(
-        origin.strip()
-        for origin in settings.CORS_ORIGINS.split(",")
-        if origin.strip()
-    )
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=cors_origins,
+    allow_origins=settings.cors_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -69,6 +49,12 @@ async def home():
     return {"message": "Application started"}
 
 
-@app.get("/health")
+@app.get("/health", tags=["Health"])
 async def health_check():
-    return {"status": "ok"}
+    """
+    Lightweight health check endpoint for monitoring and uptime probes.
+    """
+    return {
+        "status": "healthy",
+        "service": "pokemon-battle-arena"
+    }
