@@ -1,3 +1,4 @@
+from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
@@ -50,8 +51,35 @@ class Settings(BaseSettings):
                     origins.append(cleaned)
         return origins
 
+    @property
+    def is_production(self) -> bool:
+        """
+        Check if the application is running in production mode.
+        """
+        return (self.ENVIRONMENT or "").strip().lower() == "production"
+
+    @property
+    def cookie_secure(self) -> bool:
+        """
+        Determine whether the authentication cookie requires HTTPS (Secure flag).
+        Must be True in production (required for SameSite=None) and False in local HTTP.
+        """
+        return self.is_production
+
+    @property
+    def cookie_samesite(self) -> str:
+        """
+        Determine the SameSite attribute for the authentication cookie.
+        Must be 'none' in production for cross-site Vercel -> Render requests,
+        and 'lax' in local development.
+        """
+        return "none" if self.is_production else "lax"
+
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=(
+            str(Path(__file__).resolve().parent.parent.parent / ".env"),
+            ".env",
+        ),
         env_file_encoding="utf-8",
         case_sensitive=True,
         extra="ignore"

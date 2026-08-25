@@ -44,6 +44,7 @@ def register(user_data: UserCreate, db: Session = Depends(get_db)):
         )
 
 from fastapi.responses import JSONResponse
+from app.core.config import settings
 
 # Login
 @router.post(
@@ -83,8 +84,10 @@ def login(
         key="access_token",
         value=token.access_token,
         httponly=True,
-        samesite="lax",
-        path="/"
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
+        path="/",
+        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
     )
 
     return json_response
@@ -102,7 +105,10 @@ def logout():
     json_response = JSONResponse(content={"message": "Logged out successfully"})
     json_response.delete_cookie(
         key="access_token",
-        path="/"
+        path="/",
+        httponly=True,
+        secure=settings.cookie_secure,
+        samesite=settings.cookie_samesite,
     )
     return json_response
 
