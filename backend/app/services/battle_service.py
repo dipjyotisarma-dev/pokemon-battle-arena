@@ -1,10 +1,11 @@
 import random
 from datetime import datetime, timezone
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.db.models import (
     Battle,
     User,
     Leaderboard,
+    Move,
     Pokemon,
     PokemonMove,
     TrainerTeam,
@@ -257,6 +258,13 @@ def build_trainer_team_snapshot(
 
     team = (
         db.query(TrainerTeam)
+        .options(
+            joinedload(TrainerTeam.pokemon),
+            joinedload(TrainerTeam.move1),
+            joinedload(TrainerTeam.move2),
+            joinedload(TrainerTeam.move3),
+            joinedload(TrainerTeam.move4),
+        )
         .filter(
             TrainerTeam.trainer_id == trainer_id
         )
@@ -298,34 +306,6 @@ def build_trainer_team_snapshot(
     return snapshots
 
 
-def get_ai_eligible_pokemon(
-    db: Session,
-):
-    """
-    Return Pokémon that have at least four learnable moves.
-    Every AI Pokémon needs four moves for battle.
-    """
-
-    pokemon_list = db.query(Pokemon).all()
-    eligible = []
-
-    for pokemon in pokemon_list:
-        moves = [
-            pokemon_move.move
-            for pokemon_move in pokemon.available_moves
-            if pokemon_move.move is not None
-        ]
-        if len(moves) >= 4:
-            eligible.append(
-                (
-                    pokemon,
-                    moves,
-                )
-            )
-
-    return eligible
-
-
 def generate_ai_team(
     db: Session,
 ):
@@ -338,19 +318,17 @@ def generate_ai_team(
         - Each Pokémon has exactly four moves.
     """
 
-    eligible_pokemon = get_ai_eligible_pokemon(db)
+    basic_pokemon = (
+        db.query(Pokemon)
+        .filter(~Pokemon.pokemon_category.in_(SPECIAL_CATEGORIES))
+        .all()
+    )
 
-    basic_pokemon = [
-        item
-        for item in eligible_pokemon
-        if item[0].pokemon_category not in SPECIAL_CATEGORIES
-    ]
-
-    special_pokemon = [
-        item
-        for item in eligible_pokemon
-        if item[0].pokemon_category in SPECIAL_CATEGORIES
-    ]
+    special_pokemon = (
+        db.query(Pokemon)
+        .filter(Pokemon.pokemon_category.in_(SPECIAL_CATEGORIES))
+        .all()
+    )
 
     if len(basic_pokemon) < 5:
         raise ValueError(
@@ -365,29 +343,23 @@ def generate_ai_team(
     )
 
     if use_special:
-
         selected_basic = random.sample(
             basic_pokemon,
             5,
         )
-
         selected_special = random.choice(
             special_pokemon
         )
-
         selected_pokemon = (
             selected_basic
             + [selected_special]
         )
-
     else:
-
         if len(basic_pokemon) < 6:
             raise ValueError(
                 "Not enough basic Pokémon are available "
                 "to generate an all-basic AI team."
             )
-
         selected_pokemon = random.sample(
             basic_pokemon,
             6,
@@ -396,12 +368,37 @@ def generate_ai_team(
     # Shuffle team positions after selection.
     random.shuffle(selected_pokemon)
 
+    selected_ids = [p.id for p in selected_pokemon]
+
+    # Fetch learnable moves for ONLY the 6 selected Pokémon in a single JOIN query.
+    moves_query = (
+        db.query(PokemonMove.pokemon_id, Move)
+        .join(
+            Move,
+            Move.id == PokemonMove.move_id,
+        )
+        .filter(
+            PokemonMove.pokemon_id.in_(selected_ids),
+        )
+        .all()
+    )
+
+    moves_by_pokemon = {pid: [] for pid in selected_ids}
+    for pokemon_id, move in moves_query:
+        moves_by_pokemon[pokemon_id].append(move)
+
     snapshots = []
 
-    for slot, (pokemon, available_moves) in enumerate(
+    for slot, pokemon in enumerate(
         selected_pokemon,
         start=1,
     ):
+        available_moves = moves_by_pokemon.get(pokemon.id, [])
+        if len(available_moves) < 4:
+            raise ValueError(
+                f"{pokemon.display_name} does not have "
+                "enough learnable moves."
+            )
 
         selected_moves = random.sample(
             available_moves,
