@@ -1,6 +1,7 @@
 import random
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.db.models import (
+    Move,
     Pokemon,
     PokemonMove,
     TrainerTeam,
@@ -10,7 +11,7 @@ from app.schemas.team import (
     TeamResponse,
     TeamSlotResponse,
     TeamMoveResponse,
-    TeamPokemonResponse
+    TeamPokemonResponse,
 )
 
 SPECIAL_CATEGORIES = {
@@ -208,7 +209,7 @@ def create_team(
         raise
 
     # Return response
-    return build_team_response(team_objects)
+    return get_team(db, trainer_id)
 
 
 def get_team(
@@ -220,6 +221,13 @@ def get_team(
     """
     team = (
         db.query(TrainerTeam)
+        .options(
+            joinedload(TrainerTeam.pokemon),
+            joinedload(TrainerTeam.move1),
+            joinedload(TrainerTeam.move2),
+            joinedload(TrainerTeam.move3),
+            joinedload(TrainerTeam.move4),
+        )
         .filter(
             TrainerTeam.trainer_id == trainer_id
         )
@@ -299,7 +307,7 @@ def update_team(
         raise
 
     # Return updated team
-    return build_team_response(new_team_objects)
+    return get_team(db, trainer_id)
 
 
 def build_team_response(
@@ -397,11 +405,17 @@ def get_random_move_options(
             f"Pokémon with ID {pokemon_id} does not exist."
         )
 
-    available_moves = [
-        pokemon_move.move
-        for pokemon_move in pokemon.available_moves
-        if pokemon_move.move is not None
-    ]
+    available_moves = (
+        db.query(Move)
+        .join(
+            PokemonMove,
+            PokemonMove.move_id == Move.id,
+        )
+        .filter(
+            PokemonMove.pokemon_id == pokemon_id,
+        )
+        .all()
+    )
 
     if len(available_moves) < 4:
         raise ValueError(
