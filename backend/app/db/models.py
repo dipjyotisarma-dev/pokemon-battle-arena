@@ -7,6 +7,7 @@ from sqlalchemy import (
     JSON,
     Float,
     UniqueConstraint,
+    Index,
 )
 from sqlalchemy.orm import relationship
 from uuid import uuid4
@@ -20,7 +21,7 @@ class User(Base):
     username = Column(String, unique=True, index=True, nullable=False)
     email = Column(String, unique=True, nullable=False)
     password_hash = Column(String, nullable=False)
-    role = Column(String, nullable=False)
+    role = Column(String, nullable=False, index=True)
     created_at = Column(DateTime, nullable=False)
     last_matches = Column(Integer, default=0, nullable=False)
     last_wins = Column(Integer, default=0, nullable=False)
@@ -138,9 +139,9 @@ class TrainerTeam(Base):
     )
 
     id = Column(Integer, primary_key=True, index=True)
-    trainer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    trainer_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     slot = Column(Integer, nullable=False)
-    pokemon_id = Column(Integer, ForeignKey("pokemon.id"), nullable=False)
+    pokemon_id = Column(Integer, ForeignKey("pokemon.id"), nullable=False, index=True)
     move1_id = Column(Integer, ForeignKey("moves.id"), nullable=False)
     move2_id = Column(Integer, ForeignKey("moves.id"), nullable=False)
     move3_id = Column(Integer, ForeignKey("moves.id"), nullable=False)
@@ -215,10 +216,14 @@ class Leaderboard(Base):
 
     __tablename__ = "leaderboard"
 
+    __table_args__ = (
+        Index("ix_leaderboard_rank_sort", "points", "wins", "total_matches"),
+    )
+
     trainer_id = Column(Integer,ForeignKey("users.id"),primary_key=True)
     total_matches = Column(Integer, default=0, nullable=False)
     wins = Column(Integer, default=0, nullable=False)
-    points = Column(Float, default=0.0, nullable=False)
+    points = Column(Float, default=0.0, nullable=False, index=True)
 
     trainer = relationship(
         "User",

@@ -11,13 +11,21 @@ if settings.DATABASE_URL.startswith("sqlite"):
 else:
     engine = create_engine(
         settings.DATABASE_URL,
+        pool_size=10,
+        max_overflow=5,
+        pool_timeout=30,
         pool_pre_ping=True,
-        pool_recycle=1800,
+        pool_recycle=300,
     )
 
 
-# Session Factory
-SessionLocal = sessionmaker(autocommit = False, autoflush = False, bind=engine)
+# Session Factory (expire_on_commit=False preserves loaded attributes in memory across commits)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    expire_on_commit=False,
+    bind=engine
+)
 
 # Base class 
 Base = declarative_base()
