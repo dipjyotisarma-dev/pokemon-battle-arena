@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.db.database import get_db
-from app.db.models import User
+from app.db.models import User, Leaderboard
 from app.dependencies.auth import require_trainer
 from app.schemas.user import (
     UserResponse,
     TrainerDashboardResponse,
 )
-from app.services.leaderboard_service import get_ranked_leaderboard
+from app.services.leaderboard_service import get_trainer_rank
 
 
 router = APIRouter(
@@ -41,30 +41,25 @@ def get_trainer_dashboard(
     Return dashboard statistics and rank
     for the authenticated trainer.
     """
-    leaderboard_entries = get_ranked_leaderboard(db)
+    leaderboard = (
+        db.query(Leaderboard)
+        .filter(Leaderboard.trainer_id == current_user.id)
+        .first()
+    )
 
-    if not leaderboard_entries:
+    if leaderboard is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Leaderboard entry not found.",
         )
 
-    for rank, (user, leaderboard) in enumerate(
-        leaderboard_entries,
-        start=1,
-    ):
-        if user.id == current_user.id:
+    rank = get_trainer_rank(db, current_user.id)
 
-            return TrainerDashboardResponse(
-                username=user.username,
-                total_matches=leaderboard.total_matches,
-                wins=leaderboard.wins,
-                points=leaderboard.points,
-                rank=rank,
-                last_battle=user.last_battle_summary,
-            )
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail="Leaderboard entry not found.",
+    return TrainerDashboardResponse(
+        username=current_user.username,
+        total_matches=leaderboard.total_matches,
+        wins=leaderboard.wins,
+        points=leaderboard.points,
+        rank=rank,
+        last_battle=current_user.last_battle_summary,
     )

@@ -78,6 +78,13 @@ def login(
         content={
             "access_token": token.access_token,
             "token_type": token.token_type,
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+                "created_at": user.created_at.isoformat() if user.created_at else None,
+            },
         }
     )
     json_response.set_cookie(

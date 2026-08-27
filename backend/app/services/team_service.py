@@ -80,17 +80,35 @@ def validate_team(
             "A Pokémon cannot appear more than once in a team."
         )
 
+    # Batch retrieve all selected Pokémon in a single query
+    pokemon_records = (
+        db.query(Pokemon)
+        .filter(Pokemon.id.in_(pokemon_ids))
+        .all()
+    )
+    pokemon_by_id = {p.id: p for p in pokemon_records}
+
+    # Collect all move IDs across the entire team to batch-verify learnability
+    all_move_ids = set()
+    for slot in slots:
+        all_move_ids.update(slot.move_ids)
+
+    # Batch retrieve all valid (pokemon_id, move_id) pairs in a single query
+    valid_pairs = set(
+        db.query(PokemonMove.pokemon_id, PokemonMove.move_id)
+        .filter(
+            PokemonMove.pokemon_id.in_(pokemon_ids),
+            PokemonMove.move_id.in_(all_move_ids),
+        )
+        .all()
+    )
+
     validated_slots = []
     selected_pokemon = []
 
-    # Validate each slot
+    # Validate each slot using in-memory lookups
     for slot in slots:
-        # Retrieve Pokémon
-        pokemon = (
-            db.query(Pokemon)
-            .filter(Pokemon.id == slot.pokemon_id)
-            .first()
-        )
+        pokemon = pokemon_by_id.get(slot.pokemon_id)
         if pokemon is None:
             raise ValueError(
                 f"Pokémon with ID {slot.pokemon_id} does not exist."
@@ -109,18 +127,9 @@ def validate_team(
                 f"{pokemon.display_name} cannot have duplicate moves."
             )
 
-        # Validate that each move is learnable
-        # by the selected Pokémon
+        # Validate that each move is learnable by the selected Pokémon
         for move_id in slot.move_ids:
-            move_exists = (
-                db.query(PokemonMove)
-                .filter(
-                    PokemonMove.pokemon_id == pokemon.id,
-                    PokemonMove.move_id == move_id,
-                )
-                .first()
-            )
-            if move_exists is None:
+            if (pokemon.id, move_id) not in valid_pairs:
                 raise ValueError(
                     f"Move {move_id} cannot be learned by "
                     f"{pokemon.display_name}."
@@ -394,17 +403,6 @@ def get_random_move_options(
     Return a random set of 10–12 moves
     that the selected Pokémon can learn.
     """
-    pokemon = (
-        db.query(Pokemon)
-        .filter(Pokemon.id == pokemon_id)
-        .first()
-    )
-
-    if pokemon is None:
-        raise ValueError(
-            f"Pokémon with ID {pokemon_id} does not exist."
-        )
-
     available_moves = (
         db.query(Move)
         .join(
@@ -418,6 +416,15 @@ def get_random_move_options(
     )
 
     if len(available_moves) < 4:
+        pokemon = (
+            db.query(Pokemon)
+            .filter(Pokemon.id == pokemon_id)
+            .first()
+        )
+        if pokemon is None:
+            raise ValueError(
+                f"Pokémon with ID {pokemon_id} does not exist."
+            )
         raise ValueError(
             f"{pokemon.display_name} does not have "
             "enough learnable moves."

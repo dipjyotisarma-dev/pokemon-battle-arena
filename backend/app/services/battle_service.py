@@ -1,4 +1,5 @@
 import random
+from uuid import uuid4
 from datetime import datetime, timezone
 from sqlalchemy.orm import Session, joinedload
 from app.db.models import (
@@ -10,6 +11,8 @@ from app.db.models import (
     PokemonMove,
     TrainerTeam,
 )
+from app.services.leaderboard_service import get_trainer_rank
+from app.services.pokemon_service import get_all_pokemon
 
 
 SPECIAL_CATEGORIES = {
@@ -318,17 +321,15 @@ def generate_ai_team(
         - Each Pokémon has exactly four moves.
     """
 
-    basic_pokemon = (
-        db.query(Pokemon)
-        .filter(~Pokemon.pokemon_category.in_(SPECIAL_CATEGORIES))
-        .all()
-    )
-
-    special_pokemon = (
-        db.query(Pokemon)
-        .filter(Pokemon.pokemon_category.in_(SPECIAL_CATEGORIES))
-        .all()
-    )
+    all_pokemon = get_all_pokemon(db)
+    basic_pokemon = [
+        p for p in all_pokemon
+        if p.pokemon_category not in SPECIAL_CATEGORIES
+    ]
+    special_pokemon = [
+        p for p in all_pokemon
+        if p.pokemon_category in SPECIAL_CATEGORIES
+    ]
 
     if len(basic_pokemon) < 5:
         raise ValueError(
@@ -672,7 +673,6 @@ def start_match(
 
     try:
         db.commit()
-        db.refresh(battle)
 
     except Exception:
         db.rollback()
@@ -792,7 +792,6 @@ def select_pokemon_for_match(
 
     try:
         db.commit()
-        db.refresh(battle)
 
     except Exception:
         db.rollback()
@@ -868,7 +867,6 @@ def back_to_trainer_selection(
 
     try:
         db.commit()
-        db.refresh(battle)
 
     except Exception:
         db.rollback()
@@ -906,32 +904,7 @@ def exit_battle(
 
     if battle.status not in ACTIVE_BATTLE_STATUSES:
         if battle.status in {"abandoned", "battle_complete"}:
-            leaderboard_entries = (
-                db.query(User, Leaderboard)
-                .join(
-                    Leaderboard,
-                    User.id == Leaderboard.trainer_id,
-                )
-                .filter(
-                    User.role == "trainer"
-                )
-                .order_by(
-                    Leaderboard.points.desc(),
-                    Leaderboard.wins.desc(),
-                    Leaderboard.total_matches.asc(),
-                    User.username.asc(),
-                )
-                .all()
-            )
-            rank = None
-            for position, (user, leaderboard) in enumerate(
-                leaderboard_entries,
-                start=1,
-            ):
-                if user.id == trainer_id:
-                    rank = position
-                    break
-
+            rank = get_trainer_rank(db, trainer_id)
             return (
                 battle,
                 battle.completed_matches,
@@ -966,38 +939,11 @@ def exit_battle(
 
     battle.updated_at = datetime.now(timezone.utc)
 
-    # Calculate the trainer's current leaderboard rank.
-    leaderboard_entries = (
-        db.query(User, Leaderboard)
-        .join(
-            Leaderboard,
-            User.id == Leaderboard.trainer_id,
-        )
-        .filter(
-            User.role == "trainer"
-        )
-        .order_by(
-            Leaderboard.points.desc(),
-            Leaderboard.wins.desc(),
-            Leaderboard.total_matches.asc(),
-            User.username.asc(),
-        )
-        .all()
-    )
-
-    rank = None
-
-    for position, (user, leaderboard) in enumerate(
-        leaderboard_entries,
-        start=1,
-    ):
-        if user.id == trainer_id:
-            rank = position
-            break
+    # Calculate the trainer's current leaderboard rank in SQL.
+    rank = get_trainer_rank(db, trainer_id)
 
     try:
         db.commit()
-        db.refresh(battle)
 
     except Exception:
         db.rollback()
@@ -1133,7 +1079,6 @@ def continue_battle(
 
     try:
         db.commit()
-        db.refresh(battle)
 
     except Exception:
         db.rollback()
@@ -1262,7 +1207,6 @@ def execute_trainer_move(
 
         try:
             db.commit()
-            db.refresh(battle)
 
         except Exception:
             db.rollback()
@@ -1327,7 +1271,6 @@ def execute_trainer_move(
 
         try:
             db.commit()
-            db.refresh(battle)
 
         except Exception:
             db.rollback()
@@ -1349,7 +1292,6 @@ def execute_trainer_move(
 
     try:
         db.commit()
-        db.refresh(battle)
 
     except Exception:
         db.rollback()
@@ -1399,6 +1341,7 @@ def start_battle(
     now = datetime.now(timezone.utc)
 
     battle = Battle(
+        id=str(uuid4()),
         trainer_id=trainer_id,
         status="match_preparation",
         current_match=1,
@@ -1416,7 +1359,6 @@ def start_battle(
     try:
         db.add(battle)
         db.commit()
-        db.refresh(battle)
 
     except Exception:
         db.rollback()

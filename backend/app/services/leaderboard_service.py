@@ -32,3 +32,42 @@ def get_ranked_leaderboard(
         )
         .all()
     )
+
+
+def get_trainer_rank(
+    db: Session,
+    trainer_id: int,
+) -> int | None:
+    """
+    Compute a single trainer's exact leaderboard rank in SQL
+    using the official ranking and tie-breaking order.
+    """
+    from sqlalchemy import func
+
+    subquery = (
+        db.query(
+            User.id.label("user_id"),
+            func.row_number().over(
+                order_by=(
+                    Leaderboard.points.desc(),
+                    Leaderboard.wins.desc(),
+                    Leaderboard.total_matches.asc(),
+                    User.username.asc(),
+                )
+            ).label("rank"),
+        )
+        .join(
+            Leaderboard,
+            User.id == Leaderboard.trainer_id,
+        )
+        .filter(
+            User.role == "trainer",
+        )
+        .subquery()
+    )
+
+    return (
+        db.query(subquery.c.rank)
+        .filter(subquery.c.user_id == trainer_id)
+        .scalar()
+    )

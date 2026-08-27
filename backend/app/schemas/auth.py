@@ -1,4 +1,5 @@
 from pydantic import BaseModel, EmailStr
+from app.schemas.user import UserResponse
 
 class UserCreate(BaseModel):
     '''
@@ -15,6 +16,7 @@ class Token(BaseModel):
     '''
     access_token: str
     token_type: str
+    user: UserResponse | None = None
 
 
 class TokenData(BaseModel):
