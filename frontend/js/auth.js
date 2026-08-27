@@ -146,14 +146,19 @@ async function loginTrainer({ identifier, password }) {
       window.Session.setToken(token);
     }
 
-    // Verify authenticated user with /auth/me
-    const meResp = await window.Api.getCurrentUser();
-    if (meResp && meResp.data) {
-      currentTrainerId = meResp.data.id;
+    // Use returned user if present, or fetch via /auth/me fallback
+    let trainer = loginResp.data.user;
+    if (!trainer) {
+      const meResp = await window.Api.getCurrentUser();
+      trainer = meResp && meResp.data;
+    }
+
+    if (trainer) {
+      currentTrainerId = trainer.id;
       if (window.Session && typeof window.Session.setCurrentUser === 'function') {
-        window.Session.setCurrentUser(meResp.data);
+        window.Session.setCurrentUser(trainer);
       }
-      return { success: true, trainer: meResp.data };
+      return { success: true, trainer };
     }
 
     return { success: false, error: 'Unable to verify authenticated user.' };

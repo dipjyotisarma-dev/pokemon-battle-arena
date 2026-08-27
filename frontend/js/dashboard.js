@@ -195,25 +195,29 @@ async function loadTrainerDashboardData() {
       return;
     }
 
-    const resp = await window.Api.getDashboard();
-    const stats = resp && resp.data ? resp.data : null;
-    if (!stats) {
+    const [dashResult, teamResult] = await Promise.allSettled([
+      window.Api.getDashboard(),
+      window.Api.getTeam()
+    ]);
+
+    if (dashResult.status !== 'fulfilled' || !dashResult.value || !dashResult.value.data) {
+      const err = dashResult.reason;
+      if (err && err.name === 'ApiError' && (err.status === 401 || err.status === 403)) {
+        window.location.href = 'index.html';
+        return;
+      }
       window.location.href = 'index.html';
       return;
     }
 
+    const stats = dashResult.value.data;
     renderTrainerStats(stats);
     renderLastBattle(stats.last_battle ?? null);
 
     // Load team
-    try {
-      const teamResp = await window.Api.getTeam();
-      if (teamResp && teamResp.data) {
-        renderTeamGrid(teamResp.data);
-      } else {
-        renderTeamGrid(null);
-      }
-    } catch (teamErr) {
+    if (teamResult.status === 'fulfilled' && teamResult.value && teamResult.value.data) {
+      renderTeamGrid(teamResult.value.data);
+    } else {
       renderTeamGrid(null);
     }
   } catch (err) {

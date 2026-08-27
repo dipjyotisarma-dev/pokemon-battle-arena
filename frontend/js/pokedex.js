@@ -402,8 +402,13 @@ async function loadPokedexData() {
   }
 
   try {
-    const resp = await window.Api.getAllPokemon();
-    allPokemon = (resp && resp.data && Array.isArray(resp.data)) ? resp.data : [];
+    let rawData = window._pokemonCatalogRaw;
+    if (!rawData) {
+      const resp = await window.Api.getAllPokemon();
+      rawData = (resp && resp.data && Array.isArray(resp.data)) ? resp.data : [];
+      window._pokemonCatalogRaw = rawData;
+    }
+    allPokemon = rawData;
 
     allPokemon.forEach((p) => {
       pokemonDetailCache[p.id] = p;

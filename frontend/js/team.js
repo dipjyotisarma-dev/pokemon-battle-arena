@@ -139,6 +139,16 @@ async function ensureApiLoaded() {
 
 async function ensurePokemonCatalogLoaded() {
   if (pokemonCatalogLoaded && pokemonCatalog.length > 0) return pokemonCatalog;
+  if (window._pokemonCatalogCache && Array.isArray(window._pokemonCatalogCache) && window._pokemonCatalogCache.length > 0) {
+    pokemonCatalog = window._pokemonCatalogCache;
+    pokemonCatalogById = {};
+    pokemonCatalog.forEach((p) => {
+      pokemonCatalogById[p.id] = p;
+    });
+    pokemonCatalogLoaded = true;
+    initPokemonPickerTypeOptions();
+    return pokemonCatalog;
+  }
   if (pokemonCatalogPromise) return pokemonCatalogPromise;
 
   pokemonCatalogPromise = (async () => {
@@ -154,6 +164,7 @@ async function ensurePokemonCatalogLoaded() {
       pokemonCatalog.forEach((p) => {
         pokemonCatalogById[p.id] = p;
       });
+      window._pokemonCatalogCache = pokemonCatalog;
       pokemonCatalogLoaded = true;
       initPokemonPickerTypeOptions();
       return pokemonCatalog;
@@ -789,8 +800,32 @@ async function initTeamBuilder() {
   // Load team or initialize blank
   try {
     await ensureApiLoaded();
-    await ensurePokemonCatalogLoaded();
-    const resp = await window.Api.getTeam();
+    const [catResult, teamResult] = await Promise.allSettled([
+      ensurePokemonCatalogLoaded(),
+      window.Api.getTeam(),
+    ]);
+
+    if (teamResult.status === 'rejected') {
+      const err = teamResult.reason;
+      if (err && err.name === 'ApiError') {
+        if (err.status === 401 || err.status === 403) {
+          window.location.href = 'index.html';
+          return;
+        }
+        if (err.status === 404) {
+          currentSection = 'create-team';
+          const emptyNotice = document.getElementById('team-builder-empty-notice');
+          if (emptyNotice) emptyNotice.hidden = false;
+          const titleEl = document.getElementById('team-builder-title');
+          if (titleEl) titleEl.innerHTML = 'Create <em>Team</em>';
+          enterTeamBuilder(new Array(TEAM_SIZE).fill(null));
+          return;
+        }
+      }
+      throw err;
+    }
+
+    const resp = teamResult.value;
     if (resp && resp.data && Array.isArray(resp.data.slots) && resp.data.slots.length > 0) {
       currentSection = 'edit-team';
       const existsNotice = document.getElementById('team-exists-notice');
