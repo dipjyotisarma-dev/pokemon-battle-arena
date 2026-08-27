@@ -18,7 +18,7 @@
      When deploying to Vercel, replace PRODUCTION_API_URL below with
      your actual Render backend URL (e.g., 'https://pokemon-battle-arena.onrender.com').
      ============================================================ */
-  const PRODUCTION_API_URL = ''; // <-- INSERT YOUR RENDER BACKEND URL HERE (e.g. 'https://your-service.onrender.com')
+  const PRODUCTION_API_URL = 'https://pokemon-battle-arena-ovk6.onrender.com'; // <-- INSERT YOUR RENDER BACKEND URL HERE (e.g. 'https://your-service.onrender.com')
 
   function resolveBaseUrl() {
     // 1. Explicit runtime override if injected via window.API_BASE_URL
