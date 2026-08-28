@@ -17,7 +17,7 @@
 Pokémon Battle Arena is a competitive 6v6 Pokémon battle simulator converted from an original terminal-based game into a full web application. Register a team, battle through a gauntlet of random opponents, and climb the leaderboard — all powered by a FastAPI backend and a 441-Pokémon Pokédex.
 
 [![Repository](https://img.shields.io/badge/Repository-181717?logo=github&logoColor=white)](https://github.com/dipjyotisarma-dev/pokemon-battle-arena.git)
-[![Live Demo](https://img.shields.io/badge/Live%20Demo-4285F4?logo=googlechrome&logoColor=white)](INSERT_LIVE_DEMO_URL_HERE)
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-4285F4?logo=googlechrome&logoColor=white)](https://pokemon-battle-arena-lyart.vercel.app)
 
 > *This project uses custom, self-designed battle mechanics, stats, and rules. It is a fan-made learning project and is not affiliated with or intended as an accurate representation of the official Pokémon games.*
 
