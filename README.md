@@ -97,7 +97,8 @@ source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 # Run the application
-uvicorn main:app --reload
+cd backend
+uvicorn app.main:app --reload
 ```
 <div align="center">
 
