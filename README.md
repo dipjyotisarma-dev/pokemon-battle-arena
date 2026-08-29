@@ -35,7 +35,7 @@ Pokémon Battle Arena is a competitive 6v6 Pokémon battle simulator converted f
 
 ---
 
-## 📸 Screenshots
+## 📸 Preview
 
 <table>
   <tr>
